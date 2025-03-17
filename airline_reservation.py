@@ -11,6 +11,7 @@ import random
 import time
 import json
 import base64
+import re
 from PIL import Image
 import io
 import plotly.express as px
@@ -244,6 +245,28 @@ def store_mock_flights(flights):
             dep_date, dep_time, arr_date, arr_time, duration = flight[5:10]
             aircraft, price, seats, flight_class = flight[10:14]
             
+            # Ensure all values have the correct data types
+            flight_id = str(flight_id)  # Ensure flight_id is a string
+            flight_number = str(flight_number)
+            airline = str(airline)
+            origin = str(origin)
+            destination = str(destination)
+            dep_date = str(dep_date)
+            dep_time = str(dep_time)
+            arr_date = str(arr_date)
+            arr_time = str(arr_time)
+            duration = str(duration)
+            aircraft = str(aircraft)
+            try:
+                price = float(price)  # Ensure price is a float
+            except (ValueError, TypeError):
+                price = 0.0
+            try:
+                seats = int(seats)  # Ensure seats is an integer
+            except (ValueError, TypeError):
+                seats = 0
+            flight_class = str(flight_class)
+            
             # Check if this mock flight already exists in the database
             cursor.execute("SELECT id FROM flights WHERE flight_number = ?", (flight_number,))
             existing = cursor.fetchone()
@@ -286,6 +309,20 @@ def get_flight_details(flight_id):
         WHERE f.id = ?
     """, (flight_id,))
     return cursor.fetchone()
+
+def get_flight_by_id(flight_id):
+    """Get flight details by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM flights WHERE id = ?", (flight_id,))
+        flight = cursor.fetchone()
+        return flight
+    except Exception as e:
+        print(f"Error getting flight details: {e}")
+        return None
+    finally:
+        conn.close()
 
 # Book Ticket
 def book_ticket(passenger_name, flight_id, seat_number, user_id, extras="None"):
@@ -385,14 +422,15 @@ def cancel_booking(booking_id):
         # First check if the booking exists
         cursor.execute("SELECT id FROM reservations WHERE id = ?", (booking_id,))
         if not cursor.fetchone():
-            return False, "Booking not found."
+            return False
         
         # Delete the booking
         cursor.execute("DELETE FROM reservations WHERE id = ?", (booking_id,))
         conn.commit()
-        return True, "Your booking has been successfully cancelled."
+        return True
     except Exception as e:
-        return False, f"Error cancelling booking: {e}"
+        print(f"Error cancelling booking: {e}")
+        return False
     finally:
         conn.close()
 
@@ -521,7 +559,7 @@ def get_user_bookings(user_id):
         conn.close()
 
 def my_bookings_page():
-    """Display user's bookings"""
+    """Display user's bookings with ticket previews and management options"""
     st.markdown("""
     <div class="section-header">
         <h1>My Bookings</h1>
@@ -535,8 +573,7 @@ def my_bookings_page():
     if bookings:
         for booking in bookings:
             try:
-                # Use safe index checking for all booking data
-                # Structure: id, user_id, flight_id, passenger_name, flight_number, seat_number, booking_date, status, ticket_id, extras
+                # Get booking details
                 booking_id = booking[0] if len(booking) > 0 else "N/A"
                 user_id = booking[1] if len(booking) > 1 else "N/A"
                 flight_id = booking[2] if len(booking) > 2 else "N/A"
@@ -548,199 +585,149 @@ def my_bookings_page():
                 ticket_id = booking[8] if len(booking) > 8 else f"TKT-{random.randint(10000, 99999)}"
                 extras = booking[9] if len(booking) > 9 else "None"
                 
-                # Clean the passenger name to completely remove any mock data
-                display_name = passenger_name
-                if display_name and isinstance(display_name, str):
-                    # Handle common mock data patterns in passenger names
-                    import re
-                    # Use regex to remove any text containing "mock" (case insensitive)
-                    # This will match patterns like "mock", "Mock-1", "MOCK 2", etc.
-                    display_name = re.sub(r'(?i)\b\w*mock\w*\b', '', display_name).strip()
-                    # If the result is empty, use a default name
-                    if not display_name:
-                        display_name = "Passenger"
+                # Get flight details for better display
+                flight_details = get_flight_by_id(flight_id)
                 
-                # For display, split flight_number to get airline
-                airline = ""
-                # Clean flight number to remove MOCK text
-                clean_flight_number = flight_number
-                if isinstance(clean_flight_number, str):
-                    import re
-                    # Remove any variant of MOCK from the flight number
-                    clean_flight_number = re.sub(r'(?i)\b\w*mock\w*\b[\-]*', '', clean_flight_number).strip()
-                    if not clean_flight_number:
-                        clean_flight_number = f"SK{random.randint(100, 999)}"
-                
-                if isinstance(clean_flight_number, str) and " " in clean_flight_number:
-                    airline, actual_flight_number = clean_flight_number.split(" ", 1)
-                else:
-                    airline = "SkyWings"
-                    actual_flight_number = str(clean_flight_number)
-                
+                # Set default values
+                airline = "SkyWings"
                 origin = "DEL"
                 destination = "BOM"
                 departure_date = booking_date
                 departure_time = "10:00 AM"
                 
-                st.markdown(f"""
-                <div class="card flight-card">
-                    <h3>{airline} {actual_flight_number}</h3>
-                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <p><strong>From:</strong> {origin} <strong>To:</strong> {destination}</p>
-                            <p><strong>Date:</strong> {departure_date} <strong>Time:</strong> {departure_time}</p>
-                            <p><strong>Passenger:</strong> {display_name}</p>
-                            <p><strong>Seat:</strong> {seat_number}</p>
-                            <p><strong>Status:</strong> {status}</p>
-                            <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
+                # If we have flight details, use them
+                if flight_details and len(flight_details) >= 7:
+                    flight_number = flight_details[1]
+                    airline = flight_details[2]
+                    origin = flight_details[3]
+                    destination = flight_details[4]
+                    departure_date = flight_details[5]
+                    departure_time = flight_details[6]
+                
+                # Clean passenger name
+                display_name = passenger_name
+                if display_name and isinstance(display_name, str):
+                    display_name = re.sub(r'(?i)\b\w*mock\w*\b', '', display_name).strip()
+                    if not display_name:
+                        display_name = "Passenger"
+                
+                # Clean flight number
+                clean_flight_number = flight_number
+                if isinstance(clean_flight_number, str):
+                    clean_flight_number = re.sub(r'(?i)\b\w*mock\w*\b[\-]*', '', clean_flight_number).strip()
+                    if not clean_flight_number:
+                        clean_flight_number = f"SK{random.randint(100, 999)}"
+                
+                # Generate the ticket HTML
+                ticket_html = generate_ticket_html(booking_id, display_name, airline, clean_flight_number, 
+                                                origin, destination, departure_date, departure_time, 
+                                                seat_number, extras, ticket_id)
+                
+                # Create an expander for each booking
+                with st.expander(f"**{airline} {clean_flight_number}** | {departure_date} | {origin} to {destination}", expanded=True):
+                    # Display ticket info in a card
+                    st.markdown(f"""
+                    <div class="card flight-card">
+                        <h3>Flight Ticket: {ticket_id}</h3>
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <p><strong>Airline:</strong> {airline}</p>
+                                <p><strong>Flight:</strong> {clean_flight_number}</p>
+                                <p><strong>From:</strong> {origin} <strong>To:</strong> {destination}</p>
+                                <p><strong>Date:</strong> {departure_date} <strong>Time:</strong> {departure_time}</p>
+                                <p><strong>Passenger:</strong> {display_name}</p>
+                                <p><strong>Seat:</strong> {seat_number}</p>
+                                <p><strong>Status:</strong> <span style="color: green; font-weight: bold;">{status}</span></p>
+                                <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    if st.button("Download Ticket", key=f"download_{booking_id}", use_container_width=True):
-                        ticket_html = generate_ticket_html(booking)
-                        b64 = base64.b64encode(ticket_html.encode()).decode()
-                        href = f'<a href="data:text/html;base64,{b64}" download="ticket_{booking_id}.html">Download Ticket (HTML)</a>'
-                        st.markdown(href, unsafe_allow_html=True)
-                        st.success("Ticket ready for download!")
-                
-                with col2:
-                    if st.button("View Ticket", key=f"view_{booking_id}", use_container_width=True):
-                        ticket_html = generate_ticket_html(booking)
-                        st.components.v1.html(ticket_html, height=600)
-                
-                with col3:
-                    # Create a unique key for the cancel button and confirmation for each booking
-                    cancel_button_key = f"cancel_button_{booking_id}"
-                    cancel_state_key = f"cancel_state_{booking_id}"
-                    confirm_key = f"confirm_{booking_id}"
+                    """, unsafe_allow_html=True)
                     
-                    # Store the confirmation state in session state if not already there
-                    if cancel_state_key not in st.session_state:
-                        st.session_state[cancel_state_key] = False
+                    # Action buttons
+                    col1, col2, col3 = st.columns(3)
                     
-                    # Show cancel button initially
-                    if not st.session_state[cancel_state_key]:
-                        if st.button("Cancel Ticket", key=cancel_button_key, use_container_width=True):
-                            st.session_state[cancel_state_key] = True
-                            st.rerun()
-                    # Show confirmation buttons when cancel is clicked
-                    else:
-                        st.warning("Are you sure you want to cancel this ticket?")
-                        confirm_col1, confirm_col2 = st.columns(2)
-                        with confirm_col1:
-                            if st.button("Yes, Cancel", key=f"yes_{confirm_key}", use_container_width=True):
-                                success, message = cancel_booking(booking_id)
-                                if success:
-                                    st.success(message)
-                                    # Reset the confirmation state
-                                    st.session_state[cancel_state_key] = False
-                                    # Refresh the page to show updated bookings
-                                    st.rerun()
-                                else:
-                                    st.error(message)
-                        with confirm_col2:
-                            if st.button("No, Keep", key=f"no_{confirm_key}", use_container_width=True):
-                                # Reset the confirmation state
-                                st.session_state[cancel_state_key] = False
+                    with col1:
+                        # Download ticket button
+                        if st.button("📄 Download Ticket", key=f"download_{booking_id}", use_container_width=True):
+                            b64 = base64.b64encode(ticket_html.encode()).decode()
+                            href = f'<a href="data:text/html;base64,{b64}" download="ticket_{booking_id}.html">Download Ticket</a>'
+                            st.markdown(href, unsafe_allow_html=True)
+                            st.success("Ticket ready for download!")
+                    
+                    with col2:
+                        # View ticket button
+                        if st.button("👁️ View Ticket", key=f"view_{booking_id}", use_container_width=True):
+                            st.components.v1.html(ticket_html, height=600)
+                    
+                    with col3:
+                        # Cancel booking button with confirmation
+                        cancel_state_key = f"cancel_state_{booking_id}"
+                        
+                        # Initialize the cancel state if not already in session
+                        if cancel_state_key not in st.session_state:
+                            st.session_state[cancel_state_key] = False
+                        
+                        # Show the cancel button if not in confirmation state
+                        if not st.session_state[cancel_state_key]:
+                            if st.button("❌ Cancel Booking", key=f"cancel_{booking_id}", use_container_width=True):
+                                st.session_state[cancel_state_key] = True
                                 st.rerun()
-            except (IndexError, TypeError) as e:
-                st.error(f"Error displaying booking: {e}")
+                        else:
+                            # Show confirmation buttons
+                            st.warning("Are you sure you want to cancel this booking? This cannot be undone.")
+                            confirm_col1, confirm_col2 = st.columns(2)
+                            
+                            with confirm_col1:
+                                if st.button("Yes, Cancel", key=f"confirm_cancel_{booking_id}", use_container_width=True):
+                                    # Delete the booking
+                                    if cancel_booking(booking_id):
+                                        st.session_state[cancel_state_key] = False
+                                        st.success("Booking successfully cancelled.")
+                                        st.rerun()
+                                    else:
+                                        st.error("Failed to cancel booking. Please try again.")
+                            
+                            with confirm_col2:
+                                if st.button("No, Keep", key=f"keep_{booking_id}", use_container_width=True):
+                                    st.session_state[cancel_state_key] = False
+                                    st.rerun()
+            
+            except Exception as e:
+                st.error(f"Error displaying booking: {str(e)}")
+                continue
     else:
+        # No bookings found
         st.markdown("""
         <div class="card" style="text-align: center; padding: 2rem;">
             <h3>No Bookings Found</h3>
-            <p>You haven't made any bookings yet. Start by searching for flights and making a reservation.</p>
+            <p>You haven't made any bookings yet.</p>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("Book a Flight", use_container_width=True):
+        # Button to book a flight
+        if st.button("Book a Flight Now", use_container_width=True):
             st.session_state.page = 'booking'
             st.rerun()
 
-def generate_ticket_html(booking):
-    """Generate a ticket in HTML format"""
-    # Safely extract booking details with default values
-    # Structure: id, user_id, flight_id, passenger_name, flight_number, seat_number, booking_date, status, ticket_id, extras
-    booking_id = booking[0] if len(booking) > 0 else "N/A"
-    user_id = booking[1] if len(booking) > 1 else "N/A"
-    flight_id = booking[2] if len(booking) > 2 else "N/A"
-    passenger_name = booking[3] if len(booking) > 3 else "N/A"
-    flight_number = booking[4] if len(booking) > 4 else "N/A"
-    seat_number = booking[5] if len(booking) > 5 else "N/A"
-    booking_date = booking[6] if len(booking) > 6 else "N/A"
-    status = booking[7] if len(booking) > 7 else "Confirmed"
-    ticket_id = booking[8] if len(booking) > 8 else f"TKT-{random.randint(10000, 99999)}"
-    extras = booking[9] if len(booking) > 9 else "None"
+def generate_ticket_html(booking_id, passenger_name, airline, flight_number, 
+                        origin, destination, departure_date, departure_time, 
+                        seat, extras, ticket_id):
+    """Generate HTML for a ticket"""
     
-    # Clean the passenger name to completely remove any mock data
-    display_name = passenger_name
-    if display_name and isinstance(display_name, str):
-        # Handle common mock data patterns in passenger names
-        import re
-        # Use regex to remove any text containing "mock" (case insensitive)
-        # This will match patterns like "mock", "Mock-1", "MOCK 2", etc.
-        display_name = re.sub(r'(?i)\b\w*mock\w*\b', '', display_name).strip()
-        # If the result is empty, use a default name
-        if not display_name:
-            display_name = "Passenger"
+    # Format extras with commas if it's a list
+    if isinstance(extras, list):
+        extras = ", ".join(extras)
     
-    # For display, split flight_number to get airline
-    airline = ""
-    # Clean flight number to remove MOCK text
-    clean_flight_number = flight_number
-    if isinstance(clean_flight_number, str):
-        import re
-        # Remove any variant of MOCK from the flight number
-        clean_flight_number = re.sub(r'(?i)\b\w*mock\w*\b[\-]*', '', clean_flight_number).strip()
-        if not clean_flight_number:
-            clean_flight_number = f"SK{random.randint(100, 999)}"
+    # Current date for issue date
+    issue_date = datetime.now().strftime("%Y-%m-%d")
     
-    if isinstance(clean_flight_number, str) and " " in clean_flight_number:
-        airline, actual_flight_number = clean_flight_number.split(" ", 1)
-    else:
-        airline = "SkyWings"
-        actual_flight_number = str(clean_flight_number)
-    
-    # Format date in a more readable way if it's a datetime object or string
-    try:
-        if isinstance(booking_date, str) and booking_date != "N/A":
-            # Try to parse the date in different formats
-            try:
-                # For dates with time component
-                date_obj = datetime.strptime(booking_date, '%Y-%m-%d %H:%M:%S')
-                formatted_date = date_obj.strftime('%B %d, %Y')
-            except ValueError:
-                # For dates without time component
-                date_obj = datetime.strptime(booking_date, '%Y-%m-%d')
-                formatted_date = date_obj.strftime('%B %d, %Y')
-        else:
-            formatted_date = booking_date
-    except:
-        formatted_date = booking_date
-    
-    # Clean flight ID
-    clean_flight_id = flight_id
-    if isinstance(clean_flight_id, str):
-        import re
-        # Remove any variant of MOCK from the flight ID
-        clean_flight_id = re.sub(r'(?i)\b\w*mock\w*\b[\-]*', '', clean_flight_id).strip()
-        if not clean_flight_id:
-            clean_flight_id = f"FLT{random.randint(100, 999)}"
-    
-    # Generate barcode-like pattern for visual effect
-    barcode = "".join(["█" if random.random() > 0.5 else "▒" for _ in range(40)])
-    
-    # Create HTML template
-    ticket_html = f"""
+    # Create a clean, professional ticket
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <meta charset="UTF-8">
-        <title>Boarding Pass - {ticket_id}</title>
+        <title>Flight Ticket - {ticket_id}</title>
         <style>
             body {{
                 font-family: 'Arial', sans-serif;
@@ -748,179 +735,176 @@ def generate_ticket_html(booking):
                 padding: 20px;
                 background-color: #f5f5f5;
             }}
-            .ticket-container {{
-                max-width: 800px;
+            .ticket {{
+                width: 800px;
                 margin: 0 auto;
                 background-color: white;
-                border-radius: 10px;
+                border-radius: 8px;
                 overflow: hidden;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             }}
             .ticket-header {{
-                background-color: #003366;
+                background-color: #1e3a8a;
                 color: white;
                 padding: 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
+                text-align: center;
             }}
-            .airline-logo {{
+            .ticket-header h1 {{
+                margin: 0;
                 font-size: 24px;
-                font-weight: bold;
-            }}
-            .ticket-title {{
-                font-size: 18px;
-            }}
-            .ticket-id {{
-                font-size: 14px;
             }}
             .ticket-body {{
                 padding: 20px;
+                border-bottom: 1px dashed #ccc;
             }}
-            .flight-details {{
+            .flight-info {{
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 30px;
-                text-align: center;
-            }}
-            .departure, .arrival {{
-                flex: 1;
-            }}
-            .city {{
-                font-size: 18px;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }}
-            .date {{
-                color: #666;
-            }}
-            .flight-path {{
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                flex: 1;
-                position: relative;
-            }}
-            .flight-path hr {{
-                width: 100%;
-                border: 1px dashed #ccc;
-                margin: 0;
-            }}
-            .passenger-details {{
-                display: flex;
-                flex-wrap: wrap;
                 margin-bottom: 20px;
             }}
-            .detail-group {{
-                flex: 1;
-                min-width: 200px;
-                margin-bottom: 15px;
+            .flight-route {{
+                text-align: center;
+                margin: 20px 0;
             }}
-            .detail-label {{
-                font-size: 12px;
-                color: #666;
-                margin-bottom: 5px;
-            }}
-            .detail-value {{
-                font-size: 16px;
+            .airport {{
+                font-size: 24px;
                 font-weight: bold;
+            }}
+            .city {{
+                font-size: 16px;
+                color: #666;
+            }}
+            .arrow {{
+                margin: 0 20px;
+                font-size: 24px;
+                color: #1e3a8a;
+            }}
+            .passenger-info {{
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 1px solid #eee;
+            }}
+            .info-row {{
+                display: flex;
+                margin-bottom: 10px;
+            }}
+            .info-label {{
+                width: 150px;
+                font-weight: bold;
+                color: #666;
+            }}
+            .info-value {{
+                flex: 1;
             }}
             .barcode {{
-                margin-top: 20px;
                 text-align: center;
-                padding: 15px;
-                background-color: #f8f8f8;
-                border-radius: 5px;
-                font-family: monospace;
-                font-size: 10px;
-                letter-spacing: -1px;
+                margin-top: 20px;
+                padding: 10px;
+            }}
+            .barcode img {{
+                max-width: 300px;
             }}
             .ticket-footer {{
-                background-color: #003366;
-                color: white;
-                text-align: center;
-                padding: 10px;
+                padding: 20px;
                 font-size: 12px;
-            }}
-            .extras {{
-                margin: 20px 0;
-                padding: 15px;
-                background-color: #e6f7ff;
-                border-radius: 5px;
-                border-left: 3px solid #1890ff;
-            }}
-            .extras-title {{
-                font-weight: bold;
-                margin-bottom: 10px;
+                color: #999;
+                text-align: center;
             }}
         </style>
     </head>
     <body>
-        <div class="ticket-container">
+        <div class="ticket">
             <div class="ticket-header">
-                <div class="airline-logo">{airline}</div>
-                <div class="ticket-title">BOARDING PASS</div>
-                <div class="ticket-id">{ticket_id}</div>
+                <h1>BOARDING PASS</h1>
+                <p>{airline} - {flight_number}</p>
             </div>
             <div class="ticket-body">
-                <div class="flight-details">
-                    <div class="departure">
-                        <div class="city">DEPARTURE</div>
-                        <div class="date">{formatted_date}</div>
+                <div class="flight-info">
+                    <div>
+                        <div class="info-label">Passenger</div>
+                        <div class="info-value" style="font-size: 18px; font-weight: bold;">{passenger_name}</div>
                     </div>
-                    <div class="flight-path">
-                        <hr>
-                        <div>✈</div>
-                    </div>
-                    <div class="arrival">
-                        <div class="city">ARRIVAL</div>
-                        <div class="date">{formatted_date}</div>
+                    <div>
+                        <div class="info-label">Ticket No.</div>
+                        <div class="info-value">{ticket_id}</div>
                     </div>
                 </div>
                 
-                <div class="passenger-details">
-                    <div class="detail-group">
-                        <div class="detail-label">Passenger Name</div>
-                        <div class="detail-value">{display_name}</div>
-                    </div>
-                    <div class="detail-group">
-                        <div class="detail-label">Flight Number</div>
-                        <div class="detail-value">{airline} {actual_flight_number}</div>
-                    </div>
-                    <div class="detail-group">
-                        <div class="detail-label">Flight ID</div>
-                        <div class="detail-value">{clean_flight_id}</div>
-                    </div>
-                    <div class="detail-group">
-                        <div class="detail-label">Seat</div>
-                        <div class="detail-value">{seat_number}</div>
-                    </div>
-                    <div class="detail-group">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value">{status}</div>
-                    </div>
+                <div class="flight-route">
+                    <span class="airport">{origin}</span>
+                    <span class="arrow">✈️</span>
+                    <span class="airport">{destination}</span>
                 </div>
                 
-                <div class="extras">
-                    <div class="extras-title">Additional Services</div>
-                    <div>{extras}</div>
+                <div class="info-row">
+                    <div class="info-label">Flight</div>
+                    <div class="info-value">{airline} {flight_number}</div>
+                </div>
+                
+                <div class="info-row">
+                    <div class="info-label">Date</div>
+                    <div class="info-value">{departure_date}</div>
+                </div>
+                
+                <div class="info-row">
+                    <div class="info-label">Departure</div>
+                    <div class="info-value">{departure_time}</div>
+                </div>
+                
+                <div class="info-row">
+                    <div class="info-label">Seat</div>
+                    <div class="info-value" style="font-size: 18px; font-weight: bold;">{seat}</div>
+                </div>
+                
+                <div class="info-row">
+                    <div class="info-label">Additional Services</div>
+                    <div class="info-value">{extras if extras and extras != "None" else "No additional services"}</div>
+                </div>
+                
+                <div class="passenger-info">
+                    <div class="info-row">
+                        <div class="info-label">Issue Date</div>
+                        <div class="info-value">{issue_date}</div>
+                    </div>
                 </div>
                 
                 <div class="barcode">
-                    {barcode}<br>
-                    {ticket_id}
+                    <svg width="300" height="80">
+                        <!-- Simple barcode representation -->
+                        <rect x="10" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="20" y="10" width="10" height="60" fill="#000"></rect>
+                        <rect x="35" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="45" y="10" width="15" height="60" fill="#000"></rect>
+                        <rect x="65" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="75" y="10" width="10" height="60" fill="#000"></rect>
+                        <rect x="90" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="100" y="10" width="10" height="60" fill="#000"></rect>
+                        <rect x="115" y="10" width="15" height="60" fill="#000"></rect>
+                        <rect x="135" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="145" y="10" width="10" height="60" fill="#000"></rect>
+                        <rect x="160" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="170" y="10" width="15" height="60" fill="#000"></rect>
+                        <rect x="190" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="200" y="10" width="10" height="60" fill="#000"></rect>
+                        <rect x="215" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="225" y="10" width="15" height="60" fill="#000"></rect>
+                        <rect x="245" y="10" width="5" height="60" fill="#000"></rect>
+                        <rect x="255" y="10" width="10" height="60" fill="#000"></rect>
+                        <rect x="270" y="10" width="15" height="60" fill="#000"></rect>
+                    </svg>
+                    <div>{ticket_id}</div>
                 </div>
             </div>
             <div class="ticket-footer">
-                Thank you for choosing {airline} Airlines. We wish you a pleasant journey!
+                <p>Please arrive at the airport at least 2 hours before your scheduled departure.</p>
+                <p>This is an electronic ticket. Please present this along with a valid photo ID at check-in.</p>
+                <p>&copy; {datetime.now().year} SkyWings Airlines. All rights reserved.</p>
             </div>
         </div>
     </body>
     </html>
     """
-    
-    return ticket_html
+    return html
 
 def get_airport_codes():
     """Get list of airport codes from database"""
@@ -1208,8 +1192,10 @@ def flight_booking_form_page():
         
         service_col1, service_col2 = st.columns(2)
         with service_col1:
+            st.markdown('<div style="color: #000000;">', unsafe_allow_html=True)
             extra_baggage = st.checkbox("Extra Baggage (+$30)")
             priority_boarding = st.checkbox("Priority Boarding (+$15)")
+            st.markdown('</div>', unsafe_allow_html=True)
         with service_col2:
             meal_preference = st.selectbox("Meal Preference", ["Standard Meal", "Vegetarian", "Vegan", "Gluten-Free", "No Meal"])
             seat_preference = st.selectbox("Seat Preference", ["No Preference", "Window", "Aisle", "Extra Legroom"])
@@ -1258,139 +1244,6 @@ def flight_booking_form_page():
         st.session_state.page = 'booking'
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
-def my_bookings_page():
-    """Display user's bookings"""
-    st.markdown("""
-    <div class="section-header">
-        <h1>My Bookings</h1>
-        <p>View and manage your flight reservations</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Get user bookings
-    bookings = get_user_bookings(st.session_state.current_user_id)
-    
-    if bookings:
-        for booking in bookings:
-            try:
-                booking_id = booking[0] if len(booking) > 0 else "N/A"
-                flight_number = booking[2] if len(booking) > 2 else "N/A"
-                airline = booking[3] if len(booking) > 3 else "N/A"
-                origin = booking[4] if len(booking) > 4 else "N/A"
-                destination = booking[5] if len(booking) > 5 else "N/A"
-                departure_date = booking[6] if len(booking) > 6 else "N/A"
-                departure_time = booking[7] if len(booking) > 7 else "N/A"
-                passenger_name = booking[8] if len(booking) > 8 else "N/A"
-                seat_number = booking[9] if len(booking) > 9 else "N/A"
-                extras = booking[10] if len(booking) > 10 and booking[10] else "None"
-                
-                # Clean the passenger name to completely remove any mock data
-                display_name = passenger_name
-                if display_name and isinstance(display_name, str):
-                    # Handle common mock data patterns in passenger names
-                    import re
-                    # More aggressive regex to remove any text containing "mock" (case insensitive)
-                    # Remove whole words containing "mock" and any surrounding whitespace
-                    display_name = re.sub(r'(?i)\b\w*mock\w*\b', '', display_name).strip()
-                    # If the result is empty, use a default name
-                    if not display_name:
-                        display_name = "Passenger"
-                
-                # For display, split flight_number to get airline
-                airline = ""
-                # Clean flight number to remove MOCK text
-                clean_flight_number = flight_number
-                if isinstance(clean_flight_number, str):
-                    import re
-                    # Remove any variant of MOCK from the flight number
-                    clean_flight_number = re.sub(r'(?i)\b\w*mock\w*\b[\-]*', '', clean_flight_number).strip()
-                    if not clean_flight_number:
-                        clean_flight_number = f"SK{random.randint(100, 999)}"
-                
-                if isinstance(clean_flight_number, str) and " " in clean_flight_number:
-                    airline, actual_flight_number = clean_flight_number.split(" ", 1)
-                else:
-                    airline = "SkyWings"
-                    actual_flight_number = str(clean_flight_number)
-                
-                st.markdown(f"""
-                <div class="card flight-card">
-                    <h3>{airline} {actual_flight_number}</h3>
-                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <p><strong>From:</strong> {origin} <strong>To:</strong> {destination}</p>
-                            <p><strong>Date:</strong> {departure_date} <strong>Time:</strong> {departure_time}</p>
-                            <p><strong>Passenger:</strong> {display_name}</p>
-                            <p><strong>Seat:</strong> {seat_number}</p>
-                            <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    if st.button("Download Ticket", key=f"download_{booking_id}", use_container_width=True):
-                        ticket_html = generate_ticket_html(booking)
-                        b64 = base64.b64encode(ticket_html.encode()).decode()
-                        href = f'<a href="data:text/html;base64,{b64}" download="ticket_{booking_id}.html">Download Ticket (HTML)</a>'
-                        st.markdown(href, unsafe_allow_html=True)
-                        st.success("Ticket ready for download!")
-                
-                with col2:
-                    if st.button("View Ticket", key=f"view_{booking_id}", use_container_width=True):
-                        ticket_html = generate_ticket_html(booking)
-                        st.components.v1.html(ticket_html, height=600)
-                
-                with col3:
-                    # Create a unique key for the cancel button and confirmation for each booking
-                    cancel_button_key = f"cancel_button_{booking_id}"
-                    cancel_state_key = f"cancel_state_{booking_id}"
-                    confirm_key = f"confirm_{booking_id}"
-                    
-                    # Store the confirmation state in session state if not already there
-                    if cancel_state_key not in st.session_state:
-                        st.session_state[cancel_state_key] = False
-                    
-                    # Show cancel button initially
-                    if not st.session_state[cancel_state_key]:
-                        if st.button("Cancel Ticket", key=cancel_button_key, use_container_width=True):
-                            st.session_state[cancel_state_key] = True
-                            st.rerun()
-                    # Show confirmation buttons when cancel is clicked
-                    else:
-                        st.warning("Are you sure you want to cancel this ticket?")
-                        confirm_col1, confirm_col2 = st.columns(2)
-                        with confirm_col1:
-                            if st.button("Yes, Cancel", key=f"yes_{confirm_key}", use_container_width=True):
-                                success, message = cancel_booking(booking_id)
-                                if success:
-                                    st.success(message)
-                                    # Reset the confirmation state
-                                    st.session_state[cancel_state_key] = False
-                                    # Refresh the page to show updated bookings
-                                    st.rerun()
-                                else:
-                                    st.error(message)
-                        with confirm_col2:
-                            if st.button("No, Keep", key=f"no_{confirm_key}", use_container_width=True):
-                                # Reset the confirmation state
-                                st.session_state[cancel_state_key] = False
-                                st.rerun()
-            except (IndexError, TypeError) as e:
-                st.error(f"Error displaying booking: {e}")
-    else:
-        st.markdown("""
-        <div class="card" style="text-align: center; padding: 2rem;">
-            <h3>No Bookings Found</h3>
-            <p>You haven't made any bookings yet. Start by searching for flights and making a reservation.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("Book a Flight", use_container_width=True):
-            st.session_state.page = 'booking'
-            st.rerun()
 
 def profile_page():
     """Display user profile page"""
@@ -1801,7 +1654,7 @@ def flight_booking_form_page():
     """, unsafe_allow_html=True)
     
     # Booking form
-    
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     
     with col1:
@@ -1825,8 +1678,10 @@ def flight_booking_form_page():
         
         service_col1, service_col2 = st.columns(2)
         with service_col1:
+            st.markdown('<div style="color: #000000;">', unsafe_allow_html=True)
             extra_baggage = st.checkbox("Extra Baggage (+$30)")
             priority_boarding = st.checkbox("Priority Boarding (+$15)")
+            st.markdown('</div>', unsafe_allow_html=True)
         with service_col2:
             meal_preference = st.selectbox("Meal Preference", ["Standard Meal", "Vegetarian", "Vegan", "Gluten-Free", "No Meal"])
             seat_preference = st.selectbox("Seat Preference", ["No Preference", "Window", "Aisle", "Extra Legroom"])
