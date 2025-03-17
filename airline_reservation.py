@@ -535,26 +535,24 @@ def my_bookings_page():
     if bookings:
         for booking in bookings:
             try:
-                # Use safe index checking for all booking data
-                # Structure: id, user_id, flight_id, passenger_name, flight_number, seat_number, booking_date, status, ticket_id, extras
                 booking_id = booking[0] if len(booking) > 0 else "N/A"
-                user_id = booking[1] if len(booking) > 1 else "N/A"
-                flight_id = booking[2] if len(booking) > 2 else "N/A"
-                passenger_name = booking[3] if len(booking) > 3 else "N/A"
-                flight_number = booking[4] if len(booking) > 4 else "N/A"
-                seat_number = booking[5] if len(booking) > 5 else "N/A"
-                booking_date = booking[6] if len(booking) > 6 else "N/A"
-                status = booking[7] if len(booking) > 7 else "Confirmed"
-                ticket_id = booking[8] if len(booking) > 8 else f"TKT-{random.randint(10000, 99999)}"
-                extras = booking[9] if len(booking) > 9 else "None"
+                flight_number = booking[2] if len(booking) > 2 else "N/A"
+                airline = booking[3] if len(booking) > 3 else "N/A"
+                origin = booking[4] if len(booking) > 4 else "N/A"
+                destination = booking[5] if len(booking) > 5 else "N/A"
+                departure_date = booking[6] if len(booking) > 6 else "N/A"
+                departure_time = booking[7] if len(booking) > 7 else "N/A"
+                passenger_name = booking[8] if len(booking) > 8 else "N/A"
+                seat_number = booking[9] if len(booking) > 9 else "N/A"
+                extras = booking[10] if len(booking) > 10 and booking[10] else "None"
                 
                 # Clean the passenger name to completely remove any mock data
                 display_name = passenger_name
                 if display_name and isinstance(display_name, str):
                     # Handle common mock data patterns in passenger names
                     import re
-                    # Use regex to remove any text containing "mock" (case insensitive)
-                    # This will match patterns like "mock", "Mock-1", "MOCK 2", etc.
+                    # More aggressive regex to remove any text containing "mock" (case insensitive)
+                    # Remove whole words containing "mock" and any surrounding whitespace
                     display_name = re.sub(r'(?i)\b\w*mock\w*\b', '', display_name).strip()
                     # If the result is empty, use a default name
                     if not display_name:
@@ -577,24 +575,36 @@ def my_bookings_page():
                     airline = "SkyWings"
                     actual_flight_number = str(clean_flight_number)
                 
-                origin = "DEL"
-                destination = "BOM"
-                departure_date = booking_date
-                departure_time = "10:00 AM"
-                
                 st.markdown(f"""
                 <div class="card flight-card">
-                    <h3>{airline} {actual_flight_number}</h3>
-                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <p><strong>From:</strong> {origin} <strong>To:</strong> {destination}</p>
-                            <p><strong>Date:</strong> {departure_date} <strong>Time:</strong> {departure_time}</p>
+                    <h3 style="text-align: center; margin-bottom: 1.5rem;">{airline} {actual_flight_number}</h3>
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <div style="text-align: center; flex: 1; min-width: 120px;">
+                            <p style="font-size: 1.2rem; font-weight: bold;">{origin}</p>
+                            <p>Origin</p>
+                        </div>
+                        <div style="text-align: center; display: flex; align-items: center; margin: 0 1rem;">
+                            <span style="font-size: 1.5rem;">✈️</span>
+                        </div>
+                        <div style="text-align: center; flex: 1; min-width: 120px;">
+                            <p style="font-size: 1.2rem; font-weight: bold;">{destination}</p>
+                            <p>Destination</p>
+                        </div>
+                    </div>
+                    <hr style="margin: 1rem 0;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+                        <div style="flex: 1; min-width: 200px; margin-bottom: 1rem;">
+                            <p><strong>Date:</strong> {departure_date}</p>
+                            <p><strong>Time:</strong> {departure_time}</p>
+                        </div>
+                        <div style="flex: 1; min-width: 200px; margin-bottom: 1rem;">
                             <p><strong>Passenger:</strong> {display_name}</p>
                             <p><strong>Seat:</strong> {seat_number}</p>
                             <p><strong>Status:</strong> {status}</p>
-                            <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
+                            <p><strong>Additional Services:</strong> {extras}</p>
                         </div>
                     </div>
+                    <p><strong>Additional Services:</strong> {extras}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -654,6 +664,7 @@ def my_bookings_page():
         <div class="card" style="text-align: center; padding: 2rem;">
             <h3>No Bookings Found</h3>
             <p>You haven't made any bookings yet. Start by searching for flights and making a reservation.</p>
+            <img src="https://img.freepik.com/free-vector/empty-concept-illustration_114360-1188.jpg?w=740&t=st=1710657123~exp=1710657723~hmac=a395896a84b0a70ecc4fb8b3c8b0481c5d0be364910e437e23ec6a3ae8f8f876" style="max-width: 300px; margin: 1rem auto;">
         </div>
         """, unsafe_allow_html=True)
         
@@ -975,11 +986,11 @@ def login_page():
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=500)
+        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=800)
         
     
     with col2:
-        st.markdown("<h2>Login</h2> ;", unsafe_allow_html=True)
+        st.markdown("<h2>Login</h2>", unsafe_allow_html=True)
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         
@@ -1009,12 +1020,13 @@ def login_page():
 
         st.markdown("""
         <div class="card">
-            <h3>Welcome to SkyWings Airlines</h3>
+            <h3 style="text-align: center;">Welcome to SkyWings Airlines</h3>
             <p>Experience the best in air travel with our premium services and comfortable flights.</p>
             <ul>
                 <li>Best prices and deals</li>
                 <li>24/7 customer support</li>
                 <li>Convenient booking process</li>
+                <li>Earn SkyWings Miles with every flight</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1032,22 +1044,27 @@ def registration_page():
     col1, col2 = st.columns([1, 1])
     
     with col1:
+        st.markdown('<div class="card" style="text-align: center; padding: 2rem;">', unsafe_allow_html=True)
         st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=300)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
         st.markdown("""
         <div class="card">
-            <h3>Benefits of Registration</h3>
+            <h3 style="text-align: center;">Benefits of Registration</h3>
             <p>Join SkyWings Airlines and enjoy these benefits:</p>
             <ul>
                 <li>Quick and easy booking process</li>
                 <li>Access to exclusive deals and promotions</li>
                 <li>View and manage your bookings</li>
                 <li>Personalized travel experience</li>
+                <li>Earn and redeem SkyWings Miles</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("<h2>Create Account</h2>", unsafe_allow_html=True)
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; margin-bottom: 1.5rem;'>Create Account</h2>", unsafe_allow_html=True)
         
         username = st.text_input("Username*")
         password = st.text_input("Password*", type="password")
@@ -1055,7 +1072,7 @@ def registration_page():
         full_name = st.text_input("Full Name*")
         email = st.text_input("Email*")
         phone = st.text_input("Phone Number")
-        address = st.text_input("Address")
+        address = st.text_area("Address")
         
         register_col1, register_col2 = st.columns([1, 1])
         
@@ -1094,6 +1111,8 @@ def booking_page():
     """, unsafe_allow_html=True)
     
     st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin-bottom: 1.5rem;'>Search Flights</h3>", unsafe_allow_html=True)
+    
     # Flight Search Form
     col1, col2 = st.columns(2)
     
@@ -1117,12 +1136,12 @@ def booking_page():
             formatted_date = departure_date.strftime("%Y-%m-%d")
             flights = search_flights(origin_code, destination_code, formatted_date, flight_class)
             st.session_state.flights = flights
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Display Flight Results
     if 'flights' in st.session_state and st.session_state.flights:
         st.markdown("""
-        <div class="section-header" style="background-color: #004d99; margin-top: 2rem;">
+        <div class="section-header" style="background-color: #1e4d8c; margin-top: 2rem;">
             <h3>Available Flights</h3>
             <p>Select a flight to proceed with booking</p>
         </div>
@@ -1138,11 +1157,24 @@ def booking_page():
                     with cols[i]:
                         st.markdown(f"""
                         <div class="flight-card">
-                            <h4>{flight[2]} {flight[1]}</h4>
-                            <p><strong>From:</strong> {flight[3]} <strong>To:</strong> {flight[4]}</p>
+                            <h4 style="text-align: center;">{flight[2]} {flight[1]}</h4>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                                <div style="text-align: center; flex: 1;">
+                                    <p style="font-size: 1.2rem; font-weight: bold;">{flight[3]}</p>
+                                    <p>Origin</p>
+                                </div>
+                                <div style="text-align: center; display: flex; align-items: center;">
+                                    <span style="font-size: 1.5rem;">✈️</span>
+                                </div>
+                                <div style="text-align: center; flex: 1;">
+                                    <p style="font-size: 1.2rem; font-weight: bold;">{flight[4]}</p>
+                                    <p>Destination</p>
+                                </div>
+                            </div>
+                            <hr style="margin: 1rem 0;">
                             <p><strong>Date:</strong> {flight[5]} <strong>Time:</strong> {flight[6]}</p>
                             <p><strong>Duration:</strong> {flight[7]}</p>
-                            <p><strong>Price:</strong> ${flight[8]}</p>
+                            <p><strong>Price:</strong> <span style="color: #1e4d8c; font-weight: bold; font-size: 1.2rem;">${flight[8]}</span></p>
                             <p><strong>Class:</strong> {flight[9]}</p>
                         </div>
                         """, unsafe_allow_html=True)
@@ -1153,8 +1185,13 @@ def booking_page():
     
     # Show message if no flights found
     elif 'flights' in st.session_state and not st.session_state.flights:
-        st.warning("No flights found matching your criteria. Please try different search parameters.")
-
+        st.markdown("""
+        <div class="card" style="text-align: center; padding: 2rem; margin-top: 2rem;">
+            <h3 style="color: #f39c12;">No Flights Found</h3>
+            <p>No flights found matching your criteria. Please try different search parameters.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
 def flight_booking_form_page():
     if 'selected_flight' not in st.session_state or st.session_state.selected_flight is None:
         st.warning("No flight selected. Please search and select a flight first.")
@@ -1174,17 +1211,45 @@ def flight_booking_form_page():
     # Flight details card
     st.markdown(f"""
     <div class="detail-section">
-        <h4>Selected Flight: {flight[2]} {flight[1]}</h4>
-        <p><strong>From:</strong> {flight[3]} to <strong>To:</strong> {flight[4]}</p>
-        <p><strong>Date:</strong> {flight[5]} <strong>Time:</strong> {flight[6]}</p>
-        <p><strong>Duration:</strong> {flight[7]}</p>
-        <p><strong>Price:</strong> ${flight[8]}</p>
-        <p><strong>Class:</strong> {flight[9]}</p>
+        <h3 style="text-align: center; margin-bottom: 1rem;">Selected Flight Details</h3>
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1rem;">
+            <div style="text-align: center; flex: 1; min-width: 120px;">
+                <p style="font-size: 1.2rem; font-weight: bold;">{flight[3]}</p>
+                <p>Origin</p>
+            </div>
+            <div style="text-align: center; display: flex; align-items: center; margin: 0 1rem;">
+                <span style="font-size: 1.5rem;">✈️</span>
+            </div>
+            <div style="text-align: center; flex: 1; min-width: 120px;">
+                <p style="font-size: 1.2rem; font-weight: bold;">{flight[4]}</p>
+                <p>Destination</p>
+            </div>
+        </div>
+        <hr style="margin: 1rem 0;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+            <div style="flex: 1; min-width: 200px;">
+                <p><strong>Airline:</strong> {flight[2]}</p>
+                <p><strong>Flight:</strong> {flight[1]}</p>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <p><strong>Date:</strong> {flight[5]}</p>
+                <p><strong>Time:</strong> {flight[6]}</p>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <p><strong>Duration:</strong> {flight[7]}</p>
+                <p><strong>Class:</strong> {flight[9]}</p>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <p><strong>Price:</strong> <span style="color: #1e4d8c; font-weight: bold; font-size: 1.2rem;">${flight[8]}</span></p>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
     # Booking form
     st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; margin-bottom: 1.5rem;'>Passenger Information</h3>", unsafe_allow_html=True)
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -1213,48 +1278,105 @@ def flight_booking_form_page():
         with service_col2:
             meal_preference = st.selectbox("Meal Preference", ["Standard Meal", "Vegetarian", "Vegan", "Gluten-Free", "No Meal"])
             seat_preference = st.selectbox("Seat Preference", ["No Preference", "Window", "Aisle", "Extra Legroom"])
-        
-        submit_col1, submit_col2 = st.columns(2)
-        with submit_col1:
-            book_button = st.button("Confirm Booking", use_container_width=True, key="confirm_booking_btn")
-        with submit_col2:
-            cancel_button = st.button("Cancel", use_container_width=True, key="cancel_booking_btn")
     
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Payment summary
+    st.markdown("""
+    <div class="card" style="margin-top: 1.5rem;">
+        <h3 style="text-align: center; margin-bottom: 1.5rem;">Payment Summary</h3>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Base Fare:</span>
+            <span>$""" + str(flight[8]) + """</span>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Calculate additional costs
+    extra_costs = 0
+    if 'extra_baggage' in locals() and extra_baggage:
+        extra_costs += 30
+        st.markdown("""
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Extra Baggage:</span>
+            <span>$30.00</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if 'priority_boarding' in locals() and priority_boarding:
+        extra_costs += 15
+        st.markdown("""
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Priority Boarding:</span>
+            <span>$15.00</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if 'seat_preference' in locals() and seat_preference == "Extra Legroom":
+        extra_costs += 25
+        st.markdown("""
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Extra Legroom Seat:</span>
+            <span>$25.00</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Calculate taxes (mock)
+    tax = float(flight[8]) * 0.1
+    st.markdown(f"""
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <span>Taxes & Fees:</span>
+        <span>${tax:.2f}</span>
+    </div>
+    <hr style="margin: 1rem 0;">
+    <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem;">
+        <span>Total:</span>
+        <span style="color: #1e4d8c;">${float(flight[8]) + extra_costs + tax:.2f}</span>
+    </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Buttons
+    submit_col1, submit_col2 = st.columns(2)
+    with submit_col1:
+        book_button = st.button("Confirm Booking", use_container_width=True, key="confirm_booking_btn")
+    with submit_col2:
+        cancel_button = st.button("Cancel", use_container_width=True, key="cancel_booking_btn")
+    
+    # Process booking
     if book_button:
-        if not passenger_name or not selected_seat:
-            st.error("Passenger name and seat number are required")
+        if not passenger_name:
+            st.error("Please enter passenger name to continue.")
         else:
-            # Calculate extras
+            # Collect extras
             extras = []
-            extra_cost = 0
-            if extra_baggage:
+            if 'extra_baggage' in locals() and extra_baggage:
                 extras.append("Extra Baggage")
-                extra_cost += 30
-            if priority_boarding:
+            if 'priority_boarding' in locals() and priority_boarding:
                 extras.append("Priority Boarding")
-                extra_cost += 15
+            if 'meal_preference' in locals() and meal_preference != "Standard Meal":
+                extras.append(f"Meal: {meal_preference}")
+            if 'seat_preference' in locals() and seat_preference != "No Preference":
+                extras.append(f"Seat: {seat_preference}")
             
-            # Book the flight
-            success, message = book_ticket(
-                passenger_name=passenger_name, 
-                flight_id=flight[0], 
-                seat_number=selected_seat, 
-                user_id=st.session_state.current_user_id,
-                extras=", ".join(extras) if extras else "None"
+            extras_str = ", ".join(extras) if extras else "None"
+            
+            # Book the ticket
+            success, message, booking_id = book_ticket(
+                passenger_name,
+                flight[0],  # flight_id
+                selected_seat,
+                st.session_state.current_user_id,
+                extras_str
             )
             
             if success:
-                st.success(message)
-                # Reset selected flight
-                st.session_state.selected_flight = None
-                # Navigate to My Bookings
+                st.success("Booking successful! You can view your ticket in the My Bookings section.")
                 st.session_state.page = 'my_bookings'
                 st.rerun()
             else:
-                st.error(message)
+                st.error(f"Booking failed: {message}")
     
     if cancel_button:
-        st.session_state.selected_flight = None
         st.session_state.page = 'booking'
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1316,16 +1438,33 @@ def my_bookings_page():
                 
                 st.markdown(f"""
                 <div class="card flight-card">
-                    <h3>{airline} {actual_flight_number}</h3>
-                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <p><strong>From:</strong> {origin} <strong>To:</strong> {destination}</p>
-                            <p><strong>Date:</strong> {departure_date} <strong>Time:</strong> {departure_time}</p>
-                            <p><strong>Passenger:</strong> {display_name}</p>
-                            <p><strong>Seat:</strong> {seat_number}</p>
-                            <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
+                    <h3 style="text-align: center; margin-bottom: 1.5rem;">{airline} {actual_flight_number}</h3>
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <div style="text-align: center; flex: 1; min-width: 120px;">
+                            <p style="font-size: 1.2rem; font-weight: bold;">{origin}</p>
+                            <p>Origin</p>
+                        </div>
+                        <div style="text-align: center; display: flex; align-items: center; margin: 0 1rem;">
+                            <span style="font-size: 1.5rem;">✈️</span>
+                        </div>
+                        <div style="text-align: center; flex: 1; min-width: 120px;">
+                            <p style="font-size: 1.2rem; font-weight: bold;">{destination}</p>
+                            <p>Destination</p>
                         </div>
                     </div>
+                    <hr style="margin: 1rem 0;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+                        <div style="flex: 1; min-width: 200px; margin-bottom: 1rem;">
+                            <p><strong>Date:</strong> {departure_date}</p>
+                            <p><strong>Time:</strong> {departure_time}</p>
+                        </div>
+                        <div style="flex: 1; min-width: 200px; margin-bottom: 1rem;">
+                            <p><strong>Passenger:</strong> {display_name}</p>
+                            <p><strong>Seat:</strong> {seat_number}</p>
+                            <p><strong>Additional Services:</strong> {extras}</p>
+                        </div>
+                    </div>
+                    <p><strong>Additional Services:</strong> {extras}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -1385,6 +1524,7 @@ def my_bookings_page():
         <div class="card" style="text-align: center; padding: 2rem;">
             <h3>No Bookings Found</h3>
             <p>You haven't made any bookings yet. Start by searching for flights and making a reservation.</p>
+            <img src="https://img.freepik.com/free-vector/empty-concept-illustration_114360-1188.jpg?w=740&t=st=1710657123~exp=1710657723~hmac=a395896a84b0a70ecc4fb8b3c8b0481c5d0be364910e437e23ec6a3ae8f8f876" style="max-width: 300px; margin: 1rem auto;">
         </div>
         """, unsafe_allow_html=True)
         
@@ -1406,16 +1546,18 @@ def profile_page():
     
     if user_details:
         st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; margin-bottom: 1.5rem;'>Personal Information</h3>", unsafe_allow_html=True)
+        
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("<h3>Personal Information</h3>", unsafe_allow_html=True)
+            st.markdown("<h4>Contact Details</h4>", unsafe_allow_html=True)
             full_name = st.text_input("Full Name", value=user_details[0] if len(user_details) > 0 else "")
             email = st.text_input("Email", value=user_details[1] if len(user_details) > 1 else "")
             phone = st.text_input("Phone", value=user_details[2] if len(user_details) > 2 else "")
         
         with col2:
-            st.markdown("<h3>Account Details</h3>", unsafe_allow_html=True)
+            st.markdown("<h4>Account Information</h4>", unsafe_allow_html=True)
             # Display username (this is the current user from session state)
             username = st.text_input("Username", value=st.session_state.current_user, disabled=True)
             # Address is the 4th element (index 3)
@@ -1438,7 +1580,7 @@ def profile_page():
         
         st.markdown("""
         <div class="detail-section" style="margin-top: 2rem;">
-            <h3>Account Statistics</h3>
+            <h3 style="text-align: center;">Account Statistics</h3>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1446,9 +1588,9 @@ def profile_page():
         
         with stat_col1:
             st.markdown(f"""
-            <div class="card" style="text-align: center;">
-                <h1>{len(bookings)}</h1>
-                <p>Total Bookings</p>
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <h1 style="font-size: 2.5rem; color: #1e4d8c;">{len(bookings)}</h1>
+                <p style="font-size: 1.2rem;">Total Bookings</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -1471,9 +1613,9 @@ def profile_page():
                         pass
             
             st.markdown(f"""
-            <div class="card" style="text-align: center;">
-                <h1>{upcoming_flights}</h1>
-                <p>Upcoming Flights</p>
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <h1 style="font-size: 2.5rem; color: #1e4d8c;">{upcoming_flights}</h1>
+                <p style="font-size: 1.2rem;">Upcoming Flights</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -1483,11 +1625,71 @@ def profile_page():
             miles = random.randint(1000, 10000)
             
             st.markdown(f"""
-            <div class="card" style="text-align: center;">
-                <h1>{miles}</h1>
-                <p>SkyWings Miles</p>
+            <div class="card" style="text-align: center; padding: 1.5rem;">
+                <h1 style="font-size: 2.5rem; color: #1e4d8c;">{miles}</h1>
+                <p style="font-size: 1.2rem;">SkyWings Miles</p>
             </div>
             """, unsafe_allow_html=True)
+            
+        # Add travel history visualization
+        if len(bookings) > 0:
+            st.markdown("""
+            <div class="detail-section" style="margin-top: 2rem;">
+                <h3 style="text-align: center;">Travel History</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Create a simple visualization of past flights
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            
+            # Extract origin and destination for visualization
+            origins = []
+            destinations = []
+            
+            for booking in bookings:
+                if booking and len(booking) > 5:
+                    origin = booking[4] if len(booking) > 4 else None
+                    destination = booking[5] if len(booking) > 5 else None
+                    
+                    if origin and destination:
+                        origins.append(origin)
+                        destinations.append(destination)
+            
+            if origins and destinations:
+                # Create a DataFrame for visualization
+                flight_data = pd.DataFrame({
+                    'Origin': origins,
+                    'Destination': destinations,
+                    'Count': [1] * len(origins)
+                })
+                
+                # Group by origin and destination to count flights
+                flight_counts = flight_data.groupby(['Origin', 'Destination']).size().reset_index(name='Count')
+                
+                # Create a simple bar chart
+                fig = px.bar(flight_counts, 
+                             x='Origin', 
+                             y='Count', 
+                             color='Destination',
+                             title='Your Flight Routes',
+                             labels={'Count': 'Number of Flights', 'Origin': 'From', 'Destination': 'To'},
+                             height=400)
+                
+                fig.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    font_color='#333',
+                    title_font_color='#1e4d8c',
+                    legend_title_font_color='#1e4d8c',
+                    title_font_size=20,
+                    title_x=0.5
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Not enough flight data to visualize travel history.")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.error("Could not retrieve user details. Please try again later.")
         
@@ -1514,7 +1716,7 @@ def main():
     }
     
     .main {
-        background-color: #f8fafc;
+        background-color: #f0f2f6;
     }
     .stApp {
         max-width: 1200px;
@@ -1531,7 +1733,7 @@ def main():
         padding: 2rem;
     }
     .stButton>button {
-        background-color: #1e40af;
+        background-color: #003366;
         color: white;
         border-radius: 4px;
         padding: 0.5rem 1rem;
@@ -1540,12 +1742,12 @@ def main():
         font-weight: 500;
     }
     .stButton>button:hover {
-        background-color: #1e3a8a;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        background-color: #004080;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     .card {
         background-color: white;
-        color: #111827;
+        color: black;
         border-radius: 8px;
         padding: 1.5rem;
         margin-bottom: 1rem;
@@ -1558,7 +1760,7 @@ def main():
         transform: translateY(-2px);
     }
     .section-header {
-        background-color: #1e3a8a;
+        background-color: #003366;
         color: white;
         padding: 1.5rem;
         border-radius: 10px;
@@ -1577,11 +1779,11 @@ def main():
     }
     .flight-card {
         background-color: white;
-        color: #111827;
+        color: black;
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #e6e6e6;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
     }
@@ -1600,7 +1802,7 @@ def main():
         color: #374151;
     }
     .select-flight-btn {
-        background-color: #1e40af;
+        background-color: #003366;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -1608,97 +1810,21 @@ def main():
         cursor: pointer;
         width: 100%;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
     .select-flight-btn:hover {
-        background-color: #1e3a8a;
+        background-color: #004080;
     }
     .stTextInput>div>div>input, .stSelectbox>div>div>div {
         border-radius: 4px;
-        border: 1px solid #d1d5db;
-    }
-    .stTextInput>label, .stSelectbox>label, .stDateInput>label {
-        color: #374151;
-        font-weight: 500;
     }
     .detail-section {
         background-color: white;
-        color: #111827;
+        color: black;
         padding: 1.5rem;
         border-radius: 10px;
         margin-bottom: 1.5rem;
-        border-left: 5px solid #1e3a8a;
-    }
-    .detail-section h4 {
-        color: #000000;
-        margin-bottom: 0.5rem;
-    }
-    .detail-section p {
-        margin-bottom: 0.5rem;
-    }
-    .detail-section strong {
-        color: #374151;
-    }
-    .sidebar .css-1k0ckh2 {
-        background-color: #f8fafc;
-    }
-    a {
-        color: #1e40af;
-        text-decoration: none;
-    }
-    a:hover {
-        color: #1e3a8a;
-        text-decoration: underline;
-    }
-    .css-1yjuwjr, .css-qrbaxs {
-        font-size: 16px;
-        color: #374151;
-    }
-    
-    /* Style Streamlit checkboxes text to be black */
-    .stCheckbox > label {
-        color: #000000 !important;
-        font-weight: normal;
-    }
-    
-    /* Style Streamlit error, success, and info messages */
-    .st-emotion-cache-16idsys, .st-emotion-cache-1gulp4b, .st-emotion-cache-1altryn {
-        color: #000000 !important;
-    }
-    
-    /* Error message style */
-    .st-emotion-cache-183lzff {
-        background-color: #ffe6e6;
-        border-left-color: #ff4d4d;
-    }
-    .st-emotion-cache-183lzff p {
-        color: #000000 !important;
-    }
-    
-    /* Success message style */
-    .st-emotion-cache-1erivf3 {
-        background-color: #e6ffe6;
-        border-left-color: #33cc33;
-    }
-    .st-emotion-cache-1erivf3 p {
-        color: #000000 !important;
-    }
-    
-    /* Info message style */
-    .st-emotion-cache-16wtyzk {
-        background-color: #e6f2ff;
-        border-left-color: #3399ff;
-    }
-    .st-emotion-cache-16wtyzk p {
-        color: #000000 !important;
-    }
-    
-    /* Warning message style */
-    .st-emotion-cache-7ym5gk {
-        background-color: #fff9e6;
-        border-left-color: #ffcc00;
-    }
-    .st-emotion-cache-7ym5gk p {
-        color: #000000 !important;
+        border-left: 5px solid #003366;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1730,8 +1856,8 @@ def main():
         # Sidebar for navigation
         with st.sidebar:
             st.markdown(f"""
-            <div style="text-align: center; padding: 1rem; margin-bottom: 2rem; background-color: #1e3a8a; color: white; border-radius: 10px;">
-                <h2 style="color: white;">Welcome, {st.session_state.current_user}!</h2>
+            <div style="text-align: center; padding: 1rem; margin-bottom: 2rem; background-color: #003366; color: white; border-radius: 10px;">
+                <h2>Welcome, {st.session_state.current_user}!</h2>
                 <p>SkyWings Airlines</p>
             </div>
             """, unsafe_allow_html=True)
