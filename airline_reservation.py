@@ -592,7 +592,7 @@ def my_bookings_page():
                             <p><strong>Passenger:</strong> {display_name}</p>
                             <p><strong>Seat:</strong> {seat_number}</p>
                             <p><strong>Status:</strong> {status}</p>
-                            <p><strong>Additional Services:</strong> {extras}</p>
+                            <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
                         </div>
                     </div>
                 </div>
@@ -975,11 +975,11 @@ def login_page():
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=800)
+        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=500)
         
     
     with col2:
-        st.markdown("<h2>Login</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>Login</h2> ;", unsafe_allow_html=True)
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         
@@ -1055,7 +1055,7 @@ def registration_page():
         full_name = st.text_input("Full Name*")
         email = st.text_input("Email*")
         phone = st.text_input("Phone Number")
-        address = st.text_area("Address")
+        address = st.text_input("Address")
         
         register_col1, register_col2 = st.columns([1, 1])
         
@@ -1323,7 +1323,7 @@ def my_bookings_page():
                             <p><strong>Date:</strong> {departure_date} <strong>Time:</strong> {departure_time}</p>
                             <p><strong>Passenger:</strong> {display_name}</p>
                             <p><strong>Seat:</strong> {seat_number}</p>
-                            <p><strong>Additional Services:</strong> {extras}</p>
+                            <p><strong>Additional Services:</strong> <span style="color: #000000;">{extras}</span></p>
                         </div>
                     </div>
                 </div>
@@ -1505,8 +1505,16 @@ def main():
     # Add custom CSS for styling
     st.markdown("""
     <style>
+    /* Set all headings to black by default */
+    h1, h2, h3, h4, h5, h6 {
+        color: #000000;
+    }
+    p {
+        color: Black;
+    }
+    
     .main {
-        background-color: #f0f2f6;
+        background-color: #f8fafc;
     }
     .stApp {
         max-width: 1200px;
@@ -1523,24 +1531,25 @@ def main():
         padding: 2rem;
     }
     .stButton>button {
-        background-color: #003366;
+        background-color: #1e40af;
         color: white;
         border-radius: 4px;
         padding: 0.5rem 1rem;
         border: none;
         transition: all 0.3s ease;
+        font-weight: 500;
     }
     .stButton>button:hover {
-        background-color: #004080;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        background-color: #1e3a8a;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     .card {
         background-color: white;
-        color: black;
+        color: #111827;
         border-radius: 8px;
         padding: 1.5rem;
         margin-bottom: 1rem;
-        border: 1px solid #e6e6e6;
+        border: 1px solid #e5e7eb;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
     }
@@ -1549,28 +1558,49 @@ def main():
         transform: translateY(-2px);
     }
     .section-header {
-        background-color: #003366;
+        background-color: #1e3a8a;
         color: white;
         padding: 1.5rem;
         border-radius: 10px;
         margin-bottom: 1.5rem;
         text-align: center;
     }
+    /* Override section-header headings to ensure contrast on dark background */
+    .section-header h1, .section-header h2, .section-header h3 {
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+    .section-header p {
+        color: #e5e7eb;
+        margin-bottom: 0;
+        font-size: 1.1rem;
+    }
     .flight-card {
         background-color: white;
-        color: black;
+        color: #111827;
         border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1rem;
-        border: 1px solid #e6e6e6;
+        border: 1px solid #e5e7eb;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
     }
     .flight-card:hover {
         box-shadow: 0 8px 16px rgba(0,0,0,0.1);
     }
+    .flight-card h4 {
+        color: #000000;
+        margin-bottom: 0.5rem;
+    }
+    .flight-card p {
+        color: #000000;
+        margin-bottom: 0.5rem;
+    }
+    .flight-card strong {
+        color: #374151;
+    }
     .select-flight-btn {
-        background-color: #003366;
+        background-color: #1e40af;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
@@ -1580,18 +1610,95 @@ def main():
         transition: all 0.3s ease;
     }
     .select-flight-btn:hover {
-        background-color: #004080;
+        background-color: #1e3a8a;
     }
     .stTextInput>div>div>input, .stSelectbox>div>div>div {
         border-radius: 4px;
+        border: 1px solid #d1d5db;
+    }
+    .stTextInput>label, .stSelectbox>label, .stDateInput>label {
+        color: #374151;
+        font-weight: 500;
     }
     .detail-section {
         background-color: white;
-        color: black;
+        color: #111827;
         padding: 1.5rem;
         border-radius: 10px;
         margin-bottom: 1.5rem;
-        border-left: 5px solid #003366;
+        border-left: 5px solid #1e3a8a;
+    }
+    .detail-section h4 {
+        color: #000000;
+        margin-bottom: 0.5rem;
+    }
+    .detail-section p {
+        margin-bottom: 0.5rem;
+    }
+    .detail-section strong {
+        color: #374151;
+    }
+    .sidebar .css-1k0ckh2 {
+        background-color: #f8fafc;
+    }
+    a {
+        color: #1e40af;
+        text-decoration: none;
+    }
+    a:hover {
+        color: #1e3a8a;
+        text-decoration: underline;
+    }
+    .css-1yjuwjr, .css-qrbaxs {
+        font-size: 16px;
+        color: #374151;
+    }
+    
+    /* Style Streamlit checkboxes text to be black */
+    .stCheckbox > label {
+        color: #000000 !important;
+        font-weight: normal;
+    }
+    
+    /* Style Streamlit error, success, and info messages */
+    .st-emotion-cache-16idsys, .st-emotion-cache-1gulp4b, .st-emotion-cache-1altryn {
+        color: #000000 !important;
+    }
+    
+    /* Error message style */
+    .st-emotion-cache-183lzff {
+        background-color: #ffe6e6;
+        border-left-color: #ff4d4d;
+    }
+    .st-emotion-cache-183lzff p {
+        color: #000000 !important;
+    }
+    
+    /* Success message style */
+    .st-emotion-cache-1erivf3 {
+        background-color: #e6ffe6;
+        border-left-color: #33cc33;
+    }
+    .st-emotion-cache-1erivf3 p {
+        color: #000000 !important;
+    }
+    
+    /* Info message style */
+    .st-emotion-cache-16wtyzk {
+        background-color: #e6f2ff;
+        border-left-color: #3399ff;
+    }
+    .st-emotion-cache-16wtyzk p {
+        color: #000000 !important;
+    }
+    
+    /* Warning message style */
+    .st-emotion-cache-7ym5gk {
+        background-color: #fff9e6;
+        border-left-color: #ffcc00;
+    }
+    .st-emotion-cache-7ym5gk p {
+        color: #000000 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1623,13 +1730,13 @@ def main():
         # Sidebar for navigation
         with st.sidebar:
             st.markdown(f"""
-            <div style="text-align: center; padding: 1rem; margin-bottom: 2rem; background-color: #003366; color: white; border-radius: 10px;">
-                <h2>Welcome, {st.session_state.current_user}!</h2>
+            <div style="text-align: center; padding: 1rem; margin-bottom: 2rem; background-color: #1e3a8a; color: white; border-radius: 10px;">
+                <h2 style="color: white;">Welcome, {st.session_state.current_user}!</h2>
                 <p>SkyWings Airlines</p>
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("<h3 style='text-align: center;'>Navigation</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #000000;'>Navigation</h3>", unsafe_allow_html=True)
             
             if st.button("✈️ Book Flight", use_container_width=True):
                 st.session_state.page = 'booking'
