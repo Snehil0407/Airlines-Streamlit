@@ -19,8 +19,9 @@ from mock_flight_data import generate_mock_flights
 from datetime import datetime, timedelta
 
 # Database connection
-conn = sqlite3.connect("airline.db", check_same_thread=False)
-cursor = conn.cursor()
+def get_db_connection():
+    """Get a database connection"""
+    return sqlite3.connect("airline.db", check_same_thread=False)
 
 # Function to create database tables
 def create_tables():
@@ -124,11 +125,6 @@ def create_tables():
 
     conn.commit()
     conn.close()
-
-# Create a helper function to get a database connection
-def get_db_connection():
-    """Get a new database connection"""
-    return sqlite3.connect("airline.db", check_same_thread=False)
 
 # User Authentication
 def authenticate(username, password):
@@ -296,10 +292,16 @@ def store_mock_flights(flights):
         conn.close()
 
 def get_airport_list():
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("SELECT code, city, country FROM airports ORDER BY city")
-    return cursor.fetchall()
+    airports = cursor.fetchall()
+    conn.close()
+    return airports
 
 def get_flight_details(flight_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("""
         SELECT f.*, a1.city as origin_city, a1.country as origin_country, 
         a2.city as dest_city, a2.country as dest_country
@@ -308,7 +310,9 @@ def get_flight_details(flight_id):
         JOIN airports a2 ON f.destination = a2.code
         WHERE f.id = ?
     """, (flight_id,))
-    return cursor.fetchone()
+    flight = cursor.fetchone()
+    conn.close()
+    return flight
 
 def get_flight_by_id(flight_id):
     """Get flight details by ID"""
@@ -391,6 +395,8 @@ def book_ticket(passenger_name, flight_id, seat_number, user_id, extras="None"):
 
 # View Reservations
 def view_reservations(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("""
         SELECT r.id, r.passenger_name, r.flight_number, f.origin, f.destination, 
         f.departure_date, f.departure_time, r.seat_number, r.status, r.ticket_id, f.price
@@ -399,13 +405,16 @@ def view_reservations(user_id):
         WHERE r.user_id=?
         ORDER BY r.booking_date DESC
     """, (user_id,))
-    return cursor.fetchall()
+    reservations = cursor.fetchall()
+    conn.close()
+    return reservations
 
 # Cancel Reservation
 def cancel_reservation(reservation_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("SELECT flight_id FROM reservations WHERE id=?", (reservation_id,))
     flight_id = cursor.fetchone()
-    
     if flight_id:
         cursor.execute("UPDATE flights SET seats_available=seats_available+1 WHERE id=?", (flight_id[0],))
         cursor.execute("UPDATE reservations SET status='Cancelled' WHERE id=?", (reservation_id,))
@@ -907,45 +916,30 @@ def generate_ticket_html(booking_id, passenger_name, airline, flight_number,
     return html
 
 def get_airport_codes():
-    """Get list of airport codes from database"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT code FROM airports")
-        return [row[0] for row in cursor.fetchall()]
-    except Exception as e:
-        st.error(f"Error getting airport codes: {e}")
-        return []
-    finally:
-        conn.close()
+    cursor.execute("SELECT code FROM airports")
+    airport_codes = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in airport_codes]
 
 def get_user_details(user_id):
-    """Get user profile details"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT full_name, email, phone, address FROM users WHERE id = ?", (user_id,))
-        return cursor.fetchone()
-    except Exception as e:
-        st.error(f"Error getting user details: {e}")
-        return ["", "", "", ""]
-    finally:
-        conn.close()
+    cursor.execute("SELECT full_name, email, phone, address FROM users WHERE id = ?", (user_id,))
+    user_details = cursor.fetchone()
+    conn.close()
+    return user_details
 
 def update_profile(user_id, full_name, email, phone, address):
-    """Update user profile"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE users SET full_name = ?, email = ?, phone = ?, address = ?
-            WHERE id = ?
-        """, (full_name, email, phone, address, user_id))
-        conn.commit()
-    except Exception as e:
-        st.error(f"Error updating profile: {e}")
-    finally:
-        conn.close()
+    cursor.execute("""
+        UPDATE users SET full_name = ?, email = ?, phone = ?, address = ?
+        WHERE id = ?
+    """, (full_name, email, phone, address, user_id))
+    conn.commit()
+    conn.close()
 
 def login_page():
     """Display login form"""

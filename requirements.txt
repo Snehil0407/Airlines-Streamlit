@@ -4,5 +4,5 @@ reportlab==4.0.7
 Pillow==10.1.0
 plotly==5.18.0
 streamlit-option-menu==0.3.6
-requests
-python-dotenv
+requests==2.31.0
+python-dotenv==1.0.0
