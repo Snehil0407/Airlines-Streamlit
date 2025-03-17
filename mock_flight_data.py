@@ -1,6 +1,5 @@
 import random
-import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 def generate_mock_flights(origin, destination, departure_date, flight_class="Economy"):
     """
@@ -37,10 +36,10 @@ def generate_mock_flights(origin, destination, departure_date, flight_class="Eco
     
     # Convert departure_date to datetime
     try:
-        dep_date = datetime.datetime.strptime(departure_date, "%Y-%m-%d")
+        dep_date = datetime.strptime(departure_date, "%Y-%m-%d")
     except:
         # If date parsing fails, use current date
-        dep_date = datetime.datetime.now()
+        dep_date = datetime.now()
     
     # Generate 5-6 flights
     num_flights = random.randint(5, 6)
@@ -70,7 +69,7 @@ def generate_mock_flights(origin, destination, departure_date, flight_class="Eco
         duration = f"{duration_hours}h {duration_minutes}m"
         
         # Calculate arrival date and time
-        dep_datetime = dep_date.replace(hour=dep_hour, minute=dep_minute)
+        dep_datetime = dep_date.replace(hour=dep_hour, minute=dep_minute, second=0, microsecond=0)
         arr_datetime = dep_datetime + timedelta(hours=duration_hours, minutes=duration_minutes)
         arrival_date = arr_datetime.strftime("%Y-%m-%d")
         arrival_time = arr_datetime.strftime("%H:%M")

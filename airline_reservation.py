@@ -6,9 +6,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
 import os
-import datetime
 import random
-import time
 import json
 import base64
 import re
