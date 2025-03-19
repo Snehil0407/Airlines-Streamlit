@@ -16,6 +16,237 @@ import plotly.express as px
 from mock_flight_data import generate_mock_flights
 from datetime import datetime, timedelta
 
+# Function to format price string to float
+def format_price(price_str):
+    """Convert a price string to float, handling various formats and currencies."""
+    if isinstance(price_str, (int, float)):
+        return float(price_str)
+    try:
+        # Remove currency symbol and any unwanted characters
+        price_str = str(price_str).replace('₹', '').replace(':', '.').strip()
+        return float(price_str)
+    except (ValueError, TypeError):
+        # Log the error for debugging
+        print(f"Error converting price: {price_str}")
+        return 0.0  # Return 0 if conversion fails
+
+# Set page configuration
+st.set_page_config(
+    page_title="SkyWings Airlines",
+    page_icon="✈️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Apply custom CSS
+st.markdown("""
+<style>
+    /* Global Styles */
+    [data-testid="stSidebar"] {
+        background-color: #1e3a8a;
+        padding-top: 2rem;
+    }
+    
+    [data-testid="stSidebar"] .sidebar-content {
+        color: white;
+    }
+    
+    [data-testid="stSidebarNav"] {
+        background-color: #1e3a8a;
+        padding-top: 1rem;
+    }
+    
+    [data-testid="stSidebarNav"]::before {
+        content: "SkyWings Airlines";
+        margin-left: 20px;
+        margin-top: 20px;
+        font-size: 24px;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        color: white;
+        text-align: center;
+    }
+    
+    .section-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+    }
+    
+    .section-header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    
+    .card {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .flight-card {
+        transition: transform 0.2s;
+    }
+    
+    .flight-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* Form Styling */
+    .stTextInput, .stSelectbox, .stDateInput {
+        margin-bottom: 1rem;
+    }
+    
+    .stButton button {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Table Styling */
+    .stDataFrame {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .stDataFrame thead tr th {
+        background-color: #1e3a8a;
+        color: white;
+        padding: 1rem;
+    }
+    
+    /* Alert Styling */
+    .stAlert {
+        border-radius: 10px;
+        border: none;
+        margin: 1rem 0;
+    }
+    
+    /* Custom Components */
+    .flight-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background-color: #f8fafc;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .flight-route {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        font-size: 1.2rem;
+        color: #1e3a8a;
+    }
+    
+    .airport-code {
+        font-weight: bold;
+        font-size: 1.5rem;
+    }
+    
+    .flight-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .detail-item {
+        background-color: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .detail-label {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+    }
+    
+    .detail-value {
+        font-size: 1.1rem;
+        font-weight: 500;
+        color: #1e3a8a;
+    }
+    
+    /* Login/Register Form Styling */
+    .auth-container {
+        max-width: 400px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .auth-title {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #1e3a8a;
+    }
+    
+    /* Profile Page Styling */
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background-color: #1e3a8a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    .profile-info {
+        flex: 1;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .flight-details {
+            grid-template-columns: 1fr;
+        }
+        
+        .flight-route {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Database connection
 def get_db_connection():
     """Get a database connection"""
@@ -956,304 +1187,6 @@ def update_profile(user_id, full_name, email, phone, address):
     conn.commit()
     conn.close()
 
-def login_page():
-    """Display login form"""
-    st.markdown("""
-    <div class="section-header">
-        <h1>SkyWings Airlines</h1>
-        <p>Welcome to SkyWings Airlines Reservation System</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=500)
-        
-    
-    with col2:
-        st.markdown("<h2>Login</h2> ", unsafe_allow_html=True)
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        
-        login_col1, login_col2 = st.columns([1, 1])
-        
-        with login_col1:
-            login_button = st.button("Login", use_container_width=True)
-        
-        with login_col2:
-            register_button = st.button("Register", use_container_width=True)
-        
-        if login_button:
-            success, message, user_id = authenticate(username, password)
-            if success:
-                st.session_state.logged_in = True
-                st.session_state.current_user = username
-                st.session_state.current_user_id = user_id
-                st.session_state.page = 'booking'
-                st.rerun()
-            else:
-                st.error(message)
-                
-        if register_button:
-            st.session_state.page = 'register'
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown("""
-        <div class="card">
-            <h3>Welcome to SkyWings Airlines</h3>
-            <p>Experience the best in air travel with our premium services and comfortable flights.</p>
-            <ul>
-                <li>Best prices and deals</li>
-                <li>24/7 customer support</li>
-                <li>Convenient booking process</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        
-def registration_page():
-    """Display registration form"""
-    st.markdown("""
-    <div class="section-header">
-        <h1>SkyWings Airlines - Registration</h1>
-        <p>Create a new account to access our services</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", width=300)
-        st.markdown("""
-        <div class="card">
-            <h3>Benefits of Registration</h3>
-            <p>Join SkyWings Airlines and enjoy these benefits:</p>
-            <ul>
-                <li>Quick and easy booking process</li>
-                <li>Access to exclusive deals and promotions</li>
-                <li>View and manage your bookings</li>
-                <li>Personalized travel experience</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("<h2>Create Account</h2>", unsafe_allow_html=True)
-        
-        username = st.text_input("Username*")
-        password = st.text_input("Password*", type="password")
-        confirm_password = st.text_input("Confirm Password*", type="password")
-        full_name = st.text_input("Full Name*")
-        email = st.text_input("Email*")
-        phone = st.text_input("Phone Number")
-        address = st.text_input("Address")
-        
-        register_col1, register_col2 = st.columns([1, 1])
-        
-        with register_col1:
-            register_button = st.button("Create Account", use_container_width=True, key="create_account")
-        
-        with register_col2:
-            back_button = st.button("Back to Login", use_container_width=True)
-        
-        if register_button:
-            if not username or not password or not confirm_password or not full_name or not email:
-                st.error("Please fill in all required fields.")
-            elif password != confirm_password:
-                st.error("Passwords do not match. Please try again.")
-            else:
-                success, message, user_id = register_user(username, password, full_name, email, phone, address)
-                if success:
-                    st.success("Registration successful! Please login with your new credentials.")
-                    st.session_state.page = 'login'
-                    st.rerun()
-                else:
-                    st.error(message)
-                    
-        if back_button:
-            st.session_state.page = 'login'
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-def booking_page():
-    """Display flight booking page"""
-    st.markdown("""
-    <div class="section-header">
-        <h1>Book Your Flight</h1>
-        <p>Search and book flights to your desired destinations</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    # Flight Search Form
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Get airports from the database
-        origin = st.selectbox("Origin", get_airport_codes())
-        origin_code = origin
-        
-        departure_date = st.date_input("Departure Date", min_value=datetime.now().date())
-    
-    with col2:
-        destination = st.selectbox("Destination", get_airport_codes())
-        destination_code = destination
-        
-        flight_class = st.selectbox("Class", ["Economy", "Business", "First"])
-    
-    if st.button("Search Flights", use_container_width=True):
-        if origin == destination:
-            st.error("Origin and destination cannot be the same.")
-        else:
-            formatted_date = departure_date.strftime("%Y-%m-%d")
-            flights = search_flights(origin_code, destination_code, formatted_date, flight_class)
-            st.session_state.flights = flights
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    
-    # Display Flight Results
-    if 'flights' in st.session_state and st.session_state.flights:
-        st.markdown("""
-        <div class="section-header" style="background-color: #004d99; margin-top: 2rem;">
-            <h3>Available Flights</h3>
-            <p>Select a flight to proceed with booking</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col_count = 2
-        flight_chunks = [st.session_state.flights[i:i + col_count] for i in range(0, len(st.session_state.flights), col_count)]
-        
-        for chunk in flight_chunks:
-            cols = st.columns(col_count)
-            for i, flight in enumerate(chunk):
-                if i < len(cols):
-                    with cols[i]:
-                        st.markdown(f"""
-                        <div class="flight-card">
-                            <h4>{flight[2]} {flight[1]}</h4>
-                            <p><strong>From:</strong> {flight[3]} <strong>To:</strong> {flight[4]}</p>
-                            <p><strong>Date:</strong> {flight[5]} <strong>Time:</strong> {flight[6]}</p>
-                            <p><strong>Duration:</strong> {flight[7]}</p>
-                            <p><strong>Price:</strong> ${flight[8]}</p>
-                            <p><strong>Class:</strong> {flight[9]}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        if st.button(f"Select Flight", key=f"flight_{flight[0]}", use_container_width=True):
-                            st.session_state.selected_flight = flight
-                            st.session_state.page = 'flight_booking_form'
-                            st.rerun()
-    
-    # Show message if no flights found
-    elif 'flights' in st.session_state and not st.session_state.flights:
-        st.warning("No flights found matching your criteria. Please try different search parameters.")
-
-def flight_booking_form_page():
-    if 'selected_flight' not in st.session_state or st.session_state.selected_flight is None:
-        st.warning("No flight selected. Please search and select a flight first.")
-        st.session_state.page = 'booking'
-        st.rerun()
-    
-    flight = st.session_state.selected_flight
-    
-    # Page header
-    st.markdown(f"""
-    <div class="section-header">
-        <h1>Complete Your Booking</h1>
-        <p>Enter passenger details and preferences</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Flight details card
-    st.markdown(f"""
-    <div class="detail-section">
-        <h4>Selected Flight: {flight[2]} {flight[1]}</h4>
-        <p><strong>From:</strong> {flight[3]} to <strong>To:</strong> {flight[4]}</p>
-        <p><strong>Date:</strong> {flight[5]} <strong>Time:</strong> {flight[6]}</p>
-        <p><strong>Duration:</strong> {flight[7]}</p>
-        <p><strong>Price:</strong> ${flight[8]}</p>
-        <p><strong>Class:</strong> {flight[9]}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Booking form
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        passenger_name = st.text_input("Passenger Full Name", placeholder="Enter passenger's full name as in ID")
-        
-        col1_1, col1_2 = st.columns(2)
-        with col1_1:
-            passenger_email = st.text_input("Email", placeholder="example@email.com")
-        with col1_2:
-            passenger_phone = st.text_input("Phone Number", placeholder="+1 234 567 8900")
-        
-    with col2:
-        st.markdown("<h4>Select Seat</h4>", unsafe_allow_html=True)
-        
-        # Create a visual seat map
-        seat_cols = st.columns(6)
-        seat_options = [f"{row}{num}" for row in "ABCDEF" for num in range(1, 6)]
-        selected_seat = st.selectbox("Choose your seat", seat_options)
-        
-        st.markdown("<h4>Additional Services</h4>", unsafe_allow_html=True)
-        
-        service_col1, service_col2 = st.columns(2)
-        with service_col1:
-            st.markdown('<div style="color: #000000;">', unsafe_allow_html=True)
-            extra_baggage = st.checkbox("Extra Baggage (+$30)")
-            priority_boarding = st.checkbox("Priority Boarding (+$15)")
-            st.markdown('</div>', unsafe_allow_html=True)
-        with service_col2:
-            meal_preference = st.selectbox("Meal Preference", ["Standard Meal", "Vegetarian", "Vegan", "Gluten-Free", "No Meal"])
-            seat_preference = st.selectbox("Seat Preference", ["No Preference", "Window", "Aisle", "Extra Legroom"])
-        
-        submit_col1, submit_col2 = st.columns(2)
-        with submit_col1:
-            book_button = st.button("Confirm Booking", use_container_width=True, key="confirm_booking_btn")
-        with submit_col2:
-            cancel_button = st.button("Cancel", use_container_width=True, key="cancel_booking_btn")
-    
-    if book_button:
-        if not passenger_name or not selected_seat:
-            st.error("Passenger name and seat number are required")
-        else:
-            # Calculate extras
-            extras = []
-            extra_cost = 0
-            if extra_baggage:
-                extras.append("Extra Baggage")
-                extra_cost += 30
-            if priority_boarding:
-                extras.append("Priority Boarding")
-                extra_cost += 15
-            
-            # Book the flight
-            success, message = book_ticket(
-                passenger_name=passenger_name, 
-                flight_id=flight[0], 
-                seat_number=selected_seat, 
-                user_id=st.session_state.current_user_id,
-                extras=", ".join(extras) if extras else "None"
-            )
-            
-            if success:
-                st.success(message)
-                # Reset selected flight
-                st.session_state.selected_flight = None
-                # Navigate to My Bookings
-                st.session_state.page = 'my_bookings'
-                st.rerun()
-            else:
-                st.error(message)
-    
-    if cancel_button:
-        st.session_state.selected_flight = None
-        st.session_state.page = 'booking'
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
 def profile_page():
     """Display user profile page"""
     st.markdown("""
@@ -1278,9 +1211,7 @@ def profile_page():
         
         with col2:
             st.markdown("<h3>Account Details</h3>", unsafe_allow_html=True)
-            # Display username (this is the current user from session state)
             username = st.text_input("Username", value=st.session_state.current_user, disabled=True)
-            # Address is the 4th element (index 3)
             address = st.text_area("Address", value=user_details[3] if len(user_details) > 3 else "")
             new_password = st.text_input("New Password (leave blank to keep current)", type="password")
         
@@ -1315,12 +1246,10 @@ def profile_page():
             """, unsafe_allow_html=True)
         
         with stat_col2:
-            # Calculate upcoming flights - handle both date formats (with and without time)
             upcoming_flights = 0
             for booking in bookings:
                 if booking and len(booking) > 6 and booking[6]:
                     try:
-                        # Try to parse with full datetime format first
                         if ' ' in booking[6]:
                             booking_date = datetime.strptime(booking[6].split()[0], "%Y-%m-%d").date()
                         else:
@@ -1329,7 +1258,6 @@ def profile_page():
                         if booking_date >= datetime.now().date():
                             upcoming_flights += 1
                     except ValueError:
-                        # Skip this booking if we can't parse the date
                         pass
             
             st.markdown(f"""
@@ -1340,7 +1268,6 @@ def profile_page():
             """, unsafe_allow_html=True)
         
         with stat_col3:
-            # Random miles as a fun stat
             import random
             miles = random.randint(1000, 10000)
             
@@ -1352,220 +1279,507 @@ def profile_page():
             """, unsafe_allow_html=True)
     else:
         st.error("Could not retrieve user details. Please try again later.")
-        
-# Streamlit UI
-def main():
-    st.set_page_config(
-        page_title="SkyWings Airline Reservation System",
-        page_icon="✈️",
-        layout="wide"
-    )
+
+def login_page():
+    """Display login form"""
+    st.markdown("""
+    <div class="section-header">
+        <h1>Welcome to SkyWings Airlines</h1>
+        <p>Your journey begins here</p>
+    </div>
+    """, unsafe_allow_html=True)
     
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", use_column_width=True)
+        
+        st.markdown("""
+        <div class="card">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">Why Choose SkyWings?</h3>
+            <div class="detail-item" style="margin-bottom: 0.5rem;">
+                <i class="fas fa-check-circle"></i> Best prices guaranteed
+            </div>
+            <div class="detail-item" style="margin-bottom: 0.5rem;">
+                <i class="fas fa-clock"></i> 24/7 customer support
+            </div>
+            <div class="detail-item" style="margin-bottom: 0.5rem;">
+                <i class="fas fa-shield-alt"></i> Secure booking process
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-plane"></i> Wide range of destinations
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="auth-container">
+            <div class="auth-title">
+                <h2>Login</h2>
+                <p style="color: #6b7280;">Access your account</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Login", use_container_width=True):
+                success, message, user_id = authenticate(username, password)
+                if success:
+                    st.session_state.logged_in = True
+                    st.session_state.current_user = username
+                    st.session_state.current_user_id = user_id
+                    st.session_state.page = 'booking'
+                    st.rerun()
+                else:
+                    st.error(message)
+        
+        with col2:
+            if st.button("Register", use_container_width=True):
+                st.session_state.page = 'register'
+                st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="card">
+            <h3>Welcome to SkyWings Airlines</h3>
+            <p>Experience the best in air travel with our premium services and comfortable flights.</p>
+            <ul>
+                <li>Best prices and deals</li>
+                <li>24/7 customer support</li>
+                <li>Convenient booking process</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        
+def registration_page():
+    """Display registration form"""
+    st.markdown("""
+    <div class="section-header">
+        <h1>Join SkyWings Airlines</h1>
+        <p>Create your account and start your journey</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.image("https://img.freepik.com/free-vector/airplane-sky_1308-31202.jpg", use_column_width=True)
+        
+        st.markdown("""
+        <div class="card">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">Member Benefits</h3>
+            <div class="detail-item" style="margin-bottom: 0.5rem;">
+                <div class="detail-label">Quick Booking</div>
+                <div class="detail-value">Save time with express checkout</div>
+            </div>
+            <div class="detail-item" style="margin-bottom: 0.5rem;">
+                <div class="detail-label">Exclusive Deals</div>
+                <div class="detail-value">Access to member-only offers</div>
+            </div>
+            <div class="detail-item" style="margin-bottom: 0.5rem;">
+                <div class="detail-label">Digital Tickets</div>
+                <div class="detail-value">Easy access to e-tickets</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">Travel History</div>
+                <div class="detail-value">Track all your bookings</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="auth-container" style="max-width: 500px;">
+            <div class="auth-title">
+                <h2>Create Account</h2>
+                <p style="color: #6b7280;">Fill in your details to register</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("registration_form"):
+            username = st.text_input("Username*")
+            password = st.text_input("Password*", type="password")
+            confirm_password = st.text_input("Confirm Password*", type="password")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                full_name = st.text_input("Full Name*")
+                phone = st.text_input("Phone Number")
+            with col2:
+                email = st.text_input("Email*")
+                address = st.text_input("Address")
+            
+            submit_col1, submit_col2 = st.columns(2)
+            
+            with submit_col1:
+                register = st.form_submit_button("Create Account", use_container_width=True)
+            
+            with submit_col2:
+                back = st.form_submit_button("Back to Login", use_container_width=True)
+            
+            if register:
+                if not username or not password or not confirm_password or not full_name or not email:
+                    st.error("Please fill in all required fields.")
+                elif password != confirm_password:
+                    st.error("Passwords do not match. Please try again.")
+                else:
+                    success, message, user_id = register_user(username, password, full_name, email, phone, address)
+                    if success:
+                        st.success("Registration successful! Please login with your new credentials.")
+                        st.session_state.page = 'login'
+                        st.rerun()
+                    else:
+                        st.error(message)
+            
+            if back:
+                st.session_state.page = 'login'
+                st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def booking_page():
+    """Display flight booking page"""
+    st.markdown("""
+    <div class="section-header">
+        <h1>Find Your Perfect Flight</h1>
+        <p>Search and book flights to your dream destinations</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Flight Search Form
+    st.markdown("""
+    <div class="card">
+        <h3 style="color: #1e3a8a; margin-bottom: 1.5rem;">Search Flights</h3>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        # Get airports from the database
+        origin = st.selectbox("From", get_airport_codes(), 
+                            placeholder="Select departure city")
+        origin_code = origin
+    
+    with col2:
+        destination = st.selectbox("To", get_airport_codes(),
+                                 placeholder="Select arrival city")
+        destination_code = destination
+    
+    with col3:
+        flight_class = st.selectbox("Class", 
+                                  ["Economy", "Business", "First"],
+                                  placeholder="Select class")
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        departure_date = st.date_input("Departure Date", 
+                                     min_value=datetime.now().date(),
+                                     format="DD/MM/YYYY")
+    
+    with col2:
+        if st.button("Search Flights", use_container_width=True):
+            if origin == destination:
+                st.error("Origin and destination cannot be the same.")
+            else:
+                formatted_date = departure_date.strftime("%Y-%m-%d")
+                flights = search_flights(origin_code, destination_code, formatted_date, flight_class)
+                st.session_state.flights = flights
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Display Flight Results
+    if 'flights' in st.session_state and st.session_state.flights:
+        st.markdown("""
+        <div style="margin-top: 2rem;">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">Available Flights</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        for flight in st.session_state.flights:
+            try:
+                flight_id = flight[0]  # Integer ID
+                flight_number = flight[1]  # Airline code + number
+                airline = flight[2]  # Airline name
+                origin_code = flight[3]  # Origin airport code
+                destination_code = flight[4]  # Destination airport code
+                departure_date = flight[5]  # YYYY-MM-DD
+                departure_time = flight[6]  # HH:MM
+                arrival_time = flight[7]  # HH:MM
+                price = flight[8]  # Integer price
+                available_seats = flight[9]  # Integer seats
+                flight_class = flight[10]  # Class type
+                
+                # Create a container for each flight card
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    # Flight details column
+                    st.markdown(f"""
+                    <div class="card flight-card" style="margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 2rem;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: #1e3a8a;">{origin_code}</div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">Departure</div>
+                                </div>
+                                <div style="font-size: 24px; color: #1e3a8a;">✈️</div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: #1e3a8a;">{destination_code}</div>
+                                    <div style="color: #6b7280; font-size: 0.9rem;">Arrival</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #059669;">₹{price}</div>
+                                <div style="color: #6b7280; font-size: 0.9rem;">{flight_class} Class</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 2rem; margin-top: 1rem;">
+                            <div>
+                                <div style="color: #6b7280; font-size: 0.9rem;">Flight</div>
+                                <div style="font-weight: 500;">{airline} {flight_number}</div>
+                            </div>
+                            <div>
+                                <div style="color: #6b7280; font-size: 0.9rem;">Date</div>
+                                <div style="font-weight: 500;">{departure_date}</div>
+                            </div>
+                            <div>
+                                <div style="color: #6b7280; font-size: 0.9rem;">Time</div>
+                                <div style="font-weight: 500;">{departure_time} </div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    # Select button column
+                    if st.button("Select", key=f"select_{flight_id}", use_container_width=True):
+                        st.session_state.selected_flight = flight
+                        st.session_state.flight_class = flight_class
+                        st.session_state.page = 'flight_booking_form'
+                        st.rerun()
+                
+                # Add some spacing between cards
+                st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error displaying flight {flight_number}: {str(e)}")
+    elif 'flights' in st.session_state:
+        st.markdown("""
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <h3 style="color: #1e3a8a;">No Flights Found</h3>
+            <p style="color: #6b7280;">Try different dates or destinations</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+def flight_booking_form_page():
+    if 'selected_flight' not in st.session_state or st.session_state.selected_flight is None:
+        st.warning("No flight selected. Please search and select a flight first.")
+        if st.button("Back to Flight Search"):
+            st.session_state.page = 'booking'
+            st.rerun()
+        return
+
+    # Initialize extras and extras_html
+    extras = []
+    extras_html = []
+
+    flight = st.session_state.selected_flight
+    flight_id = flight[0]  # Integer ID
+    flight_number = flight[1]  # Airline code + number
+    airline = flight[2]  # Airline name
+    origin = flight[3]  # Origin airport code
+    destination = flight[4]  # Destination airport code
+    departure_date = flight[5]  # YYYY-MM-DD
+    departure_time = flight[6]  # HH:MM
+    arrival_time = flight[7]  # HH:MM
+    price = flight[8]  # Integer price
+    available_seats = flight[9]  # Integer seats
+    flight_class = flight[10]  # Class type
+
+    st.markdown("""
+    <div class="section-header">
+        <h1>Complete Your Booking</h1>
+        <p>Just a few more details to confirm your flight</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Flight Summary Card
+    st.markdown(f"""
+    <div class="card">
+        <h3 style="color: #1e3a8a; margin-bottom: 1.5rem;">Flight Summary</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; gap: 2rem;">
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #1e3a8a;">{origin}</div>
+                    <div style="color: #6b7280; font-size: 0.9rem;">Departure</div>
+                </div>
+                <div style="font-size: 24px; color: #1e3a8a;">✈️</div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #1e3a8a;">{destination}</div>
+                    <div style="color: #6b7280; font-size: 0.9rem;">Arrival</div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.2rem; font-weight: bold; color: #059669;">₹{price}</div>
+                <div style="color: #6b7280; font-size: 0.9rem;">{flight_class} Class</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 2rem;">
+            <div>
+                <div style="color: #6b7280; font-size: 0.9rem;">Flight</div>
+                <div style="font-weight: 500;">{airline} {flight_number}</div>
+            </div>
+            <div>
+                <div style="color: #6b7280; font-size: 0.9rem;">Date</div>
+                <div style="font-weight: 500;">{departure_date}</div>
+            </div>
+            <div>
+                <div style="color: #6b7280; font-size: 0.9rem;">Time</div>
+                <div style="font-weight: 500;">{departure_time}</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Seat Selection (Outside the form)
+    st.markdown("### Select Your Seat")
+    st.markdown("Note: Green seats are available, gray seats are taken")
+    
+    # Create seat layout (6 seats per row: A-F)
+    try:
+        available_seats = int(available_seats)  # Convert to int if it's a string
+    except (ValueError, TypeError):
+        available_seats = 30  # Default to 30 seats if conversion fails
+    
+    rows = range(1, (available_seats // 6) + 2)  # Add one extra row
+    cols = ['A', 'B', 'C', 'D', 'E', 'F']
+    
+    # Store selected seat in session state to persist between reruns
+    if 'selected_seat' not in st.session_state:
+        st.session_state.selected_seat = None
+    
+    # Create columns for seat map
+    seat_cols = st.columns(3)
+    
+    with seat_cols[1]:
+        # Display seat grid
+        for row in rows:
+            seat_row = st.columns(8)  # 6 seats + aisle
+            
+            # Row number
+            seat_row[0].write(str(row))
+            
+            for i, col in enumerate(cols):
+                seat = f"{row}{col}"
+                # Add aisle gap between seats C and D
+                col_index = i + 1 if i < 3 else i + 2
+                
+                # Check if this seat is already taken (you can implement your own logic here)
+                is_taken = False  # Replace with actual seat availability check
+                
+                if seat_row[col_index].button(
+                    col,
+                    key=f"seat_{seat}",
+                    help=f"Select seat {seat}",
+                    disabled=is_taken,
+                    type="secondary" if st.session_state.selected_seat == seat else "primary",
+                    use_container_width=True
+                ):
+                    st.session_state.selected_seat = seat
+        
+        if st.session_state.selected_seat:
+            st.write(f"Selected seat: {st.session_state.selected_seat}")
+
+    # Booking Form (After seat selection)
+    with st.form("booking_form"):
+        st.markdown("### Passenger Details")
+        passenger_name = st.text_input("Passenger Name", value=st.session_state.get('user_full_name', ''))
+        
+        # Add extras section
+        st.markdown("### Add Extras")
+        extra_baggage = st.checkbox("Extra Baggage (₹1000)")
+        special_meal = st.checkbox("Special Meal (₹500)")
+        priority_boarding = st.checkbox("Priority Boarding (₹750)")
+        
+        # Calculate total price
+        total_price = price
+        if extra_baggage:
+            total_price += 1000
+        if special_meal:
+            total_price += 500
+        if priority_boarding:
+            total_price += 750
+        
+        # Display price summary
+        st.markdown("### Price Summary")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.write("Base Fare")
+            if extra_baggage:
+                st.write("Extra Baggage")
+            if special_meal:
+                st.write("Special Meal")
+            if priority_boarding:
+                st.write("Priority Boarding")
+            st.markdown("**Total Amount**")
+        
+        with col2:
+            st.write(f"₹{price}")
+            if extra_baggage:
+                st.write("₹1000")
+            if special_meal:
+                st.write("₹500")
+            if priority_boarding:
+                st.write("₹750")
+            st.markdown(f"**₹{total_price}**")
+        
+        # Form buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            submit = st.form_submit_button("Confirm Booking", use_container_width=True)
+            if submit:
+                if not passenger_name:
+                    st.error("Please enter passenger name.")
+                elif not st.session_state.selected_seat:
+                    st.error("Please select a seat before confirming.")
+                else:
+                    extras_list = []
+                    if extra_baggage:
+                        extras_list.append("Extra Baggage")
+                    if special_meal:
+                        extras_list.append("Special Meal")
+                    if priority_boarding:
+                        extras_list.append("Priority Boarding")
+                    
+                    extras_str = ", ".join(extras_list) if extras_list else "None"
+                    booking_success = book_ticket(passenger_name, flight_id, st.session_state.selected_seat, 
+                        st.session_state.current_user_id, extras_str)
+                    
+                    if booking_success:
+                        st.success("Flight booked successfully!")
+                        st.session_state.page = 'my_bookings'
+                        st.rerun()
+                    else:
+                        st.error("Failed to book the flight. Please try again.")
+        
+        with col2:
+            if st.form_submit_button("Back to Search", use_container_width=True):
+                st.session_state.page = 'booking'
+                st.rerun()
+
+def main():
+    """Main function to run the Streamlit app"""
     # Create tables if they don't exist
     create_tables()
     
-    # Add custom CSS for styling
-    st.markdown("""
-    <style>
-    /* Set all headings to black by default */
-    h1, h2, h3, h4, h5, h6 {
-        color: #000000;
-    }
-    p {
-        color: Black;
-    }
-    
-    .main {
-        background-color: #f8fafc;
-    }
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .css-18e3th9 {
-        padding-top: 2rem;
-    }
-    .css-1d391kg {
-        padding: 1rem;
-    }
-    .block-container {
-        max-width: 1100px;
-        padding: 2rem;
-    }
-    .stButton>button {
-        background-color: #1e40af;
-        color: white;
-        border-radius: 4px;
-        padding: 0.5rem 1rem;
-        border: none;
-        transition: all 0.3s ease;
-        font-weight: 500;
-    }
-    .stButton>button:hover {
-        background-color: #1e3a8a;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    .card {
-        background-color: white;
-        color: #111827;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-    }
-    .card:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-    }
-    .section-header {
-        background-color: #1e3a8a;
-        color: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-    /* Override section-header headings to ensure contrast on dark background */
-    .section-header h1, .section-header h2, .section-header h3 {
-        color: white;
-        margin-bottom: 0.5rem;
-    }
-    .section-header p {
-        color: #e5e7eb;
-        margin-bottom: 0;
-        font-size: 1.1rem;
-    }
-    .flight-card {
-        background-color: white;
-        color: #111827;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-    }
-    .flight-card:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    }
-    .flight-card h4 {
-        color: #000000;
-        margin-bottom: 0.5rem;
-    }
-    .flight-card p {
-        color: #000000;
-        margin-bottom: 0.5rem;
-    }
-    .flight-card strong {
-        color: #374151;
-    }
-    .select-flight-btn {
-        background-color: #1e40af;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        width: 100%;
-        transition: all 0.3s ease;
-    }
-    .select-flight-btn:hover {
-        background-color: #1e3a8a;
-    }
-    .stTextInput>div>div>input, .stSelectbox>div>div>div {
-        border-radius: 4px;
-        border: 1px solid #d1d5db;
-    }
-    .stTextInput>label, .stSelectbox>label, .stDateInput>label {
-        color: #374151;
-        font-weight: 500;
-    }
-    .detail-section {
-        background-color: white;
-        color: #111827;
-        padding: 1.5rem;
-        border-radius: 10px;
-        margin-bottom: 1.5rem;
-        border-left: 5px solid #1e3a8a;
-    }
-    .detail-section h4 {
-        color: #000000;
-        margin-bottom: 0.5rem;
-    }
-    .detail-section p {
-        margin-bottom: 0.5rem;
-    }
-    .detail-section strong {
-        color: #374151;
-    }
-    .sidebar .css-1k0ckh2 {
-        background-color: #f8fafc;
-    }
-    a {
-        color: #1e40af;
-        text-decoration: none;
-    }
-    a:hover {
-        color: #1e3a8a;
-        text-decoration: underline;
-    }
-    .css-1yjuwjr, .css-qrbaxs {
-        font-size: 16px;
-        color: #374151;
-    }
-    
-    /* Style Streamlit checkboxes text to be black */
-    .stCheckbox > label {
-        color: #000000 !important;
-        font-weight: normal;
-    }
-    
-    /* Style Streamlit error, success, and info messages */
-    .st-emotion-cache-16idsys, .st-emotion-cache-1gulp4b, .st-emotion-cache-1altryn {
-        color: #000000 !important;
-    }
-    
-    /* Error message style */
-    .st-emotion-cache-183lzff {
-        background-color: #ffe6e6;
-        border-left-color: #ff4d4d;
-    }
-    .st-emotion-cache-183lzff p {
-        color: #000000 !important;
-    }
-    
-    /* Success message style */
-    .st-emotion-cache-1erivf3 {
-        background-color: #e6ffe6;
-        border-left-color: #33cc33;
-    }
-    .st-emotion-cache-1erivf3 p {
-        color: #000000 !important;
-    }
-    
-    /* Info message style */
-    .st-emotion-cache-16wtyzk {
-        background-color: #e6f2ff;
-        border-left-color: #3399ff;
-    }
-    .st-emotion-cache-16wtyzk p {
-        color: #000000 !important;
-    }
-    
-    /* Warning message style */
-    .st-emotion-cache-7ym5gk {
-        background-color: #fff9e6;
-        border-left-color: #ffcc00;
-    }
-    .st-emotion-cache-7ym5gk p {
-        color: #000000 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Initialize session state variables if they don't exist
+    # Initialize session state variables
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
     if 'current_user' not in st.session_state:
@@ -1632,113 +1846,6 @@ def main():
             profile_page()
         else:
             booking_page()  # Default to booking page
-
-def flight_booking_form_page():
-    """Display dedicated form for completing flight booking"""
-    if 'selected_flight' not in st.session_state or st.session_state.selected_flight is None:
-        st.warning("No flight selected. Please search and select a flight first.")
-        st.session_state.page = 'booking'
-        st.rerun()
-    
-    flight = st.session_state.selected_flight
-    
-    # Page header
-    st.markdown(f"""
-    <div class="section-header">
-        <h1>Complete Your Booking</h1>
-        <p>Enter passenger details and preferences</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Flight details card
-    st.markdown(f"""
-    <div class="detail-section">
-        <h4>Selected Flight: {flight[2]} {flight[1]}</h4>
-        <p><strong>From:</strong> {flight[3]} to <strong>To:</strong> {flight[4]}</p>
-        <p><strong>Date:</strong> {flight[5]} <strong>Time:</strong> {flight[6]}</p>
-        <p><strong>Duration:</strong> {flight[7]}</p>
-        <p><strong>Price:</strong> ${flight[8]}</p>
-        <p><strong>Class:</strong> {flight[9]}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Booking form
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        passenger_name = st.text_input("Passenger Full Name", placeholder="Enter passenger's full name as in ID")
-        
-        col1_1, col1_2 = st.columns(2)
-        with col1_1:
-            passenger_email = st.text_input("Email", placeholder="example@email.com")
-        with col1_2:
-            passenger_phone = st.text_input("Phone Number", placeholder="+1 234 567 8900")
-        
-    with col2:
-        st.markdown("<h4>Select Seat</h4>", unsafe_allow_html=True)
-        
-        # Create a visual seat map
-        seat_cols = st.columns(6)
-        seat_options = [f"{row}{num}" for row in "ABCDEF" for num in range(1, 6)]
-        selected_seat = st.selectbox("Choose your seat", seat_options)
-        
-        st.markdown("<h4>Additional Services</h4>", unsafe_allow_html=True)
-        
-        service_col1, service_col2 = st.columns(2)
-        with service_col1:
-            st.markdown('<div style="color: #000000;">', unsafe_allow_html=True)
-            extra_baggage = st.checkbox("Extra Baggage (+$30)")
-            priority_boarding = st.checkbox("Priority Boarding (+$15)")
-            st.markdown('</div>', unsafe_allow_html=True)
-        with service_col2:
-            meal_preference = st.selectbox("Meal Preference", ["Standard Meal", "Vegetarian", "Vegan", "Gluten-Free", "No Meal"])
-            seat_preference = st.selectbox("Seat Preference", ["No Preference", "Window", "Aisle", "Extra Legroom"])
-        
-        submit_col1, submit_col2 = st.columns(2)
-        with submit_col1:
-            book_button = st.button("Confirm Booking", use_container_width=True, key="confirm_booking_btn")
-        with submit_col2:
-            cancel_button = st.button("Cancel", use_container_width=True, key="cancel_booking_btn")
-    
-    if book_button:
-        if not passenger_name or not selected_seat:
-            st.error("Passenger name and seat number are required")
-        else:
-            # Calculate extras
-            extras = []
-            extra_cost = 0
-            if extra_baggage:
-                extras.append("Extra Baggage")
-                extra_cost += 30
-            if priority_boarding:
-                extras.append("Priority Boarding")
-                extra_cost += 15
-            
-            # Book the flight
-            success, message = book_ticket(
-                passenger_name=passenger_name, 
-                flight_id=flight[0], 
-                seat_number=selected_seat, 
-                user_id=st.session_state.current_user_id,
-                extras=", ".join(extras) if extras else "None"
-            )
-            
-            if success:
-                st.success(message)
-                # Reset selected flight
-                st.session_state.selected_flight = None
-                # Navigate to My Bookings
-                st.session_state.page = 'my_bookings'
-                st.rerun()
-            else:
-                st.error(message)
-    
-    if cancel_button:
-        st.session_state.selected_flight = None
-        st.session_state.page = 'booking'
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Run the main function
 if __name__ == "__main__":

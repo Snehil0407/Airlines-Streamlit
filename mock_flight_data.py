@@ -62,58 +62,52 @@ def generate_mock_flights(origin, destination, departure_date, flight_class="Eco
         dep_minute = random.choice([0, 15, 30, 45])
         departure_time = f"{dep_hour:02d}:{dep_minute:02d}"
         
-        # Generate flight duration based on airports
-        # For simplicity, use a random duration between 1-8 hours
-        duration_hours = random.randint(1, 8)
-        duration_minutes = random.choice([0, 15, 30, 45])
-        duration = f"{duration_hours}h {duration_minutes}m"
+        # Generate arrival time (1-3 hours after departure)
+        duration = random.randint(60, 180)  # Duration in minutes
+        arr_hour = dep_hour + (dep_minute + duration) // 60
+        arr_minute = (dep_minute + duration) % 60
+        if arr_hour >= 24:
+            arr_hour = arr_hour % 24
+        arrival_time = f"{arr_hour:02d}:{arr_minute:02d}"
         
-        # Calculate arrival date and time
+        # Calculate arrival date
         dep_datetime = dep_date.replace(hour=dep_hour, minute=dep_minute, second=0, microsecond=0)
-        arr_datetime = dep_datetime + timedelta(hours=duration_hours, minutes=duration_minutes)
+        arr_datetime = dep_datetime + timedelta(minutes=duration)
         arrival_date = arr_datetime.strftime("%Y-%m-%d")
-        arrival_time = arr_datetime.strftime("%H:%M")
         
         # Generate aircraft type
         aircraft = aircraft_types[i % len(aircraft_types)]
         
         # Generate price based on flight class
-        base_price = random.randint(200, 500)
+        base_price = random.randint(2000, 5000)  # Base price between 2000-5000
         if flight_class == "Business":
             price = base_price * 2.5
         elif flight_class == "First":
-            price = base_price * 4
+            price = base_price * 4.0
         else:  # Economy
             price = base_price
         
-        # Round price to 2 decimal places
-        price = round(price, 2)
+        # Ensure price is a clean integer
+        price = int(round(price))
         
         # Generate available seats
         available_seats = random.randint(5, 50)
         
-        # Create unique flight ID
-        flight_id = f"MOCK-{i+1}"
-        
-        # Create flight tuple
-        flight = (
-            flight_id,
+        # Create flight data tuple
+        flight_data = (
+            i + 1,  # flight id
             flight_number,
             airline_name,
             origin,
             destination,
-            departure_date,
+            dep_date.strftime("%Y-%m-%d"),
             departure_time,
-            arrival_date,
             arrival_time,
-            duration,
-            aircraft,
-            price,
+            price,  # price is now an integer
             available_seats,
             flight_class
         )
-        
-        flights.append(flight)
+        flights.append(flight_data)
     
     # Sort flights by departure time
     flights.sort(key=lambda x: x[6])
