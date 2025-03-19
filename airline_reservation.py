@@ -665,7 +665,17 @@ def my_bookings_page():
                     with col2:
                         # View ticket button
                         if st.button("👁️ View Ticket", key=f"view_{booking_id}", use_container_width=True):
-                            st.components.v1.html(ticket_html, height=600)
+                            st.markdown("""
+                                <style>
+                                    iframe {
+                                        width: 100% !important;
+                                        min-height: 800px !important;
+                                        margin: 0 auto !important;
+                                        display: block !important;
+                                    }
+                                </style>
+                            """, unsafe_allow_html=True)
+                            st.components.v1.html(ticket_html, height=800, scrolling=True)
                     
                     with col3:
                         # Cancel booking button with confirmation
@@ -739,16 +749,23 @@ def generate_ticket_html(booking_id, passenger_name, airline, flight_number,
             body {{
                 font-family: 'Arial', sans-serif;
                 margin: 0;
-                padding: 20px;
+                padding: 0;
                 background-color: #f5f5f5;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
             }}
             .ticket {{
-                width: 800px;
-                margin: 0 auto;
+                width: 100%;
+                max-width: 800px;
+                margin: 20px auto;
                 background-color: white;
                 border-radius: 8px;
-                overflow: hidden;
+                overflow: visible;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                transform: scale(0.95);
+                transform-origin: top center;
             }}
             .ticket-header {{
                 background-color: #1e3a8a;
