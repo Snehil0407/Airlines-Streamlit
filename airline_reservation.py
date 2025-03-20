@@ -338,16 +338,28 @@ def create_tables():
 
         # Insert sample airports
         sample_airports = [
+            # Major Indian Airports
             ("DEL", "Indira Gandhi International Airport", "New Delhi", "India"),
             ("BOM", "Chhatrapati Shivaji International Airport", "Mumbai", "India"),
-            ("MAA", "Chennai International Airport", "Chennai", "India"),
             ("BLR", "Kempegowda International Airport", "Bengaluru", "India"),
-            ("CCU", "Netaji Subhas Chandra Bose International Airport", "Kolkata", "India"),
             ("HYD", "Rajiv Gandhi International Airport", "Hyderabad", "India"),
+            ("MAA", "Chennai International Airport", "Chennai", "India"),
+            ("CCU", "Netaji Subhas Chandra Bose International Airport", "Kolkata", "India"),
             ("COK", "Cochin International Airport", "Kochi", "India"),
+            ("GOI", "Dabolim Airport", "Goa", "India"),
+            ("PNQ", "Pune International Airport", "Pune", "India"),
+            ("IXC", "Chandigarh International Airport", "Chandigarh", "India"),
+            # Major International Airports
+            ("DXB", "Dubai International Airport", "Dubai", "UAE"),
             ("JFK", "John F. Kennedy International Airport", "New York", "USA"),
             ("LHR", "Heathrow Airport", "London", "UK"),
-            ("SIN", "Singapore Changi Airport", "Singapore", "Singapore")
+            ("SIN", "Singapore Changi Airport", "Singapore", "Singapore"),
+            ("HKG", "Hong Kong International Airport", "Hong Kong", "China"),
+            ("CDG", "Charles de Gaulle Airport", "Paris", "France"),
+            ("FRA", "Frankfurt Airport", "Frankfurt", "Germany"),
+            ("SYD", "Sydney Airport", "Sydney", "Australia"),
+            ("AMS", "Amsterdam Airport Schiphol", "Amsterdam", "Netherlands"),
+            ("ICN", "Incheon International Airport", "Seoul", "South Korea")
         ]
 
         cursor.executemany("INSERT INTO airports (code, name, city, country) VALUES (?, ?, ?, ?)", sample_airports)
@@ -523,10 +535,15 @@ def store_mock_flights(flights):
 def get_airport_list():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT code, city, country FROM airports ORDER BY city")
+    cursor.execute("SELECT code, city FROM airports ORDER BY city")
     airports = cursor.fetchall()
     conn.close()
-    return airports
+    # Format as simple "code - city" strings
+    return [f"{airport[0]} - {airport[1]}" for airport in airports]
+
+def get_airport_code(airport_string):
+    """Extract airport code from the formatted string"""
+    return airport_string.split(' - ')[0] if airport_string else None
 
 def get_flight_details(flight_id):
     conn = get_db_connection()
@@ -1464,14 +1481,14 @@ def booking_page():
     
     with col1:
         # Get airports from the database
-        origin = st.selectbox("From", get_airport_codes(), 
+        origin = st.selectbox("From", get_airport_list(), 
                             placeholder="Select departure city")
-        origin_code = origin
+        origin_code = get_airport_code(origin)
     
     with col2:
-        destination = st.selectbox("To", get_airport_codes(),
+        destination = st.selectbox("To", get_airport_list(),
                                  placeholder="Select arrival city")
-        destination_code = destination
+        destination_code = get_airport_code(destination)
     
     with col3:
         flight_class = st.selectbox("Class", 
